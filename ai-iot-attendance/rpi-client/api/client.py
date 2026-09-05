@@ -17,9 +17,13 @@ class AttendanceAPIClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
         self.token: str | None = None
+        self.email: str | None = None
+        self.password: str | None = None
         self.client = httpx.Client(timeout=10.0)
 
     def login(self, email: str, password: str) -> str:
+        self.email = email
+        self.password = password
         try:
             response = self.client.post(
                 f"{self.base_url}/api/v1/auth/login",
@@ -43,10 +47,10 @@ class AttendanceAPIClient:
         try:
             response = self.client.request(method, f"{self.base_url}{path}", headers=headers, **kwargs)
             if response.status_code == 401:
-                if self.token is None:
+                if self.token is None or self.email is None or self.password is None:
                     raise NetworkError("Authentication required.")
                 logger.warning("API token expired; reauthenticating and retrying once.")
-                self.token = None
+                self.login(self.email, self.password)
                 return self._request(method, path, **kwargs)
             response.raise_for_status()
             return response

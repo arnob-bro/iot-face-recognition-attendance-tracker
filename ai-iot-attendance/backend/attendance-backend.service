@@ -1,0 +1,16 @@
+[Unit]
+Description=AI-IoT Attendance Backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi/ai-iot-attendance/backend
+ExecStart=/home/pi/ai-iot-attendance/backend/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+User=pi
+Environment=PATH=/home/pi/ai-iot-attendance/backend/.venv/bin:/usr/bin
+Environment=OMP_NUM_THREADS=2
+
+[Install]
+WantedBy=multi-user.target

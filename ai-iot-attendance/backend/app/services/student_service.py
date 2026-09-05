@@ -65,6 +65,7 @@ async def get_student(student_id: str) -> StudentResponse:
 
     data = doc.to_dict()
     face_enrolled = _check_face_enrolled(db, student_id)
+    data.pop("face_enrolled", None)
 
     return StudentResponse(**data, face_enrolled=face_enrolled)
 
@@ -97,6 +98,7 @@ async def list_students(
     for doc in docs:
         data = doc.to_dict()
         face_enrolled = _check_face_enrolled(db, data["student_id"])
+        data.pop("face_enrolled", None)
         students.append(StudentResponse(**data, face_enrolled=face_enrolled))
 
     return StudentListResponse(students=students, total=len(students))

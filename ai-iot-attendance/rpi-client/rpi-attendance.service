@@ -1,0 +1,16 @@
+[Unit]
+Description=Raspberry Pi Attendance Client
+After=attendance-backend.service
+Requires=attendance-backend.service
+
+[Service]
+WorkingDirectory=/home/pi/ai-iot-attendance/rpi-client
+ExecStartPre=/bin/sleep 15
+ExecStart=/home/pi/ai-iot-attendance/rpi-client/.venv/bin/python main.py
+Restart=always
+RestartSec=10
+User=pi
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target

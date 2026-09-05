@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     face_match_threshold: float = 0.45
     attendance_cooldown_seconds: int = 60
+    recognize_every_n_frames: int = 5
 
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parent / ".env"),

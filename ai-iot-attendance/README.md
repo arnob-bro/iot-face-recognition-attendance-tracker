@@ -57,12 +57,20 @@ The emulator must remain running while the backend or test suite uses Firestore.
 ## Run the backend
 
 From `backend/`:
+in windows
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+in raspberry pi linux terminal
+```powershell
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 The application bootstraps the admin account on startup. Defaults are `admin@university.edu` and `changeme123`; set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` in `.env` for a real deployment.
