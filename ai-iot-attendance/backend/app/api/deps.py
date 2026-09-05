@@ -12,12 +12,14 @@ from app.core.security import decode_access_token
 from app.core.exceptions import AuthenticationError, AuthorizationError
 from app.schemas.auth import UserInToken
 
-# FastAPI security scheme — extracts Bearer token from header
-security = HTTPBearer()
+# FastAPI security scheme — extracts Bearer token from header.
+# auto_error=False allows us to distinguish between a missing token
+# (authorization failure -> 403) and a malformed/expired token (401).
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> UserInToken:
     """
     Validate the JWT token and return the current user identity.
@@ -25,6 +27,9 @@ async def get_current_user(
     This is the primary authentication dependency — inject it into
     any route that requires a logged-in user.
     """
+    if credentials is None:
+        raise AuthorizationError("Authentication required.")
+
     payload = decode_access_token(credentials.credentials)
 
     if payload is None:

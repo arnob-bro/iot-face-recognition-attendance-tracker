@@ -1,117 +1,142 @@
-# AI-Integrated IoT Attendance System — Developer Guide
+# AI-IoT Attendance System
 
-This guide will help developers set up and run the backend of the AI-Integrated IoT Attendance System from scratch. 
+This repository contains a FastAPI attendance backend and a separate Raspberry Pi camera client. The backend stores users, students, courses, face embeddings, attendance sessions, and reports in Firebase Firestore. The AI pipeline runs face detection, liveness checking, and recognition; mock AI is enabled by default for development.
+
+## Project structure
+
+- `backend/` - FastAPI application, Firebase services, AI pipeline, and tests
+- `rpi-client/` - camera client with API integration, offline SQLite queue, and optional ESP32 serial bridge
+- `models/` - model storage used by the backend when real AI is enabled
 
 ## Prerequisites
 
-1. **Python 3.11+** installed on your machine.
-2. A **Firebase** account and project (for Firestore database).
-3. *(Windows Only)* **Visual Studio C++ Build Tools** installed (required to compile the `insightface` AI library).
+- Python 3.11 or newer
+- A Firebase project with Firestore enabled for live use
+- Visual Studio C++ Build Tools on Windows if installing `insightface` requires compilation
+- Firebase CLI only when using the local Firestore emulator
 
----
+## Firebase configuration
 
-## 1. Firebase Setup
+The emulator is optional. Choose one of these modes.
 
-This project uses Firebase Firestore as its primary database.
+### Live Firebase project
 
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Create a new project (e.g., `ai-iot-attendance`).
-3. In the left sidebar, navigate to **Build > Firestore Database** and click **Create database**. Start it in Test Mode for development.
-4. Go to **Project Settings** (gear icon top left) > **Service accounts**.
-5. Click **Generate new private key**. This will download a `.json` file.
-6. Rename this file to `firebase-credentials.json` and place it in the `backend/` folder of this project.
+1. In Firebase Console, enable Firestore.
+2. In Project Settings > Service accounts, generate a private key.
+3. Save the downloaded file as `backend/firebase-credentials.json`.
+4. Create `backend/.env` with at least:
 
-> **WARNING:** Never commit `firebase-credentials.json` to Git! It contains your database secrets.
+```dotenv
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_CREDENTIALS_PATH=./firebase-credentials.json
+JWT_SECRET_KEY=replace-with-a-long-random-secret
+USE_MOCK_AI=true
+LIVENESS_ENABLED=true
+```
 
----
+Run the backend from `backend/` so the relative credentials path resolves correctly. Do not commit the credentials file; it is ignored by Git.
 
-## 2. Environment Configuration
+### Local Firestore emulator
 
-1. Navigate to the `backend/` directory.
-2. Copy the `.env.example` file and rename it to `.env`.
-3. Open `.env` and configure the variables:
-   - `FIREBASE_PROJECT_ID`: Set this to your Firebase project ID.
-   - `JWT_SECRET_KEY`: Change this to a random secure string.
-   - `USE_MOCK_AI`: Set to `true` if you don't want to download the 300MB AI models during development. Set to `false` to use the real ArcFace/SCRFD models.
+Use this mode for isolated development and tests. It does not require a service-account file.
 
----
+From the repository root, start Firestore in one terminal:
 
-## 3. Python Virtual Environment Setup
-
-Open a terminal and navigate to the `backend/` directory, then run the following commands:
-
-**Windows:**
 ```powershell
-cd backend
+firebase emulators:start --only firestore --project test-project --host 127.0.0.1
+```
+
+In the backend terminal, set the emulator host before starting the server or tests:
+
+```powershell
+$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
+```
+
+The emulator must remain running while the backend or test suite uses Firestore.
+
+## Run the backend
+
+From `backend/`:
+
+```powershell
 python -m venv venv
 .\venv\Scripts\activate
+pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**macOS/Linux:**
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-```
+The application bootstraps the admin account on startup. Defaults are `admin@university.edu` and `changeme123`; set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` in `.env` for a real deployment.
 
----
+Useful URLs:
 
-## 4. Installing Dependencies
+- Health check: http://localhost:8000/health
+- OpenAPI documentation: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-With the virtual environment activated, install the required packages:
+## Run backend tests
+
+Tests use Firestore. Start the emulator as described above, set `FIRESTORE_EMULATOR_HOST`, then run from `backend/`:
 
 ```powershell
+python -m pytest tests/ -q
+```
+
+The verified local result is 16 passed and 3 skipped. Tests clear their Firestore collections before running.
+
+## API workflow
+
+Use the interactive documentation at `/docs`:
+
+1. Log in with `POST /api/v1/auth/login` and authorize with the returned bearer token.
+2. Create a student with `POST /api/v1/students/`.
+3. Create a course with `POST /api/v1/courses/` and enroll the student.
+4. Start a session with `POST /api/v1/attendance/sessions`.
+5. Enroll a face with `POST /api/v1/faces/enroll/{student_id}`.
+6. Recognize a frame with `POST /api/v1/faces/recognize`.
+7. Review attendance and reports through the attendance, dashboard, and reports endpoints.
+
+Recognition responses include a confidence value and, when liveness is enabled, a `liveness_score`. Face enrollment currently stores one representative sample per upload.
+
+## Run the Raspberry Pi client
+
+The client can run on a Raspberry Pi or another device with a camera. From `rpi-client/`:
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **IMPORTANT BUG FIX NOTE:** There is a known compatibility issue between the `passlib` library and `bcrypt >= 4.0.0`. This project requires `bcrypt==3.2.2`. If you encounter a `ValueError: password cannot be longer than 72 bytes` during startup, ensure you explicitly run:
-> `pip install bcrypt==3.2.2`
+Create `rpi-client/.env` as needed:
 
----
-
-## 5. Running the Backend Server
-
-Start the FastAPI server using Uvicorn:
-
-```powershell
-uvicorn app.main:app --reload
+```dotenv
+API_URL=http://localhost:8000
+RPI_EMAIL=admin@university.edu
+RPI_PASSWORD=changeme123
+COURSE_ID=
+CAMERA_INDEX=0
+CAMERA_WIDTH=640
+CAMERA_HEIGHT=480
+CAMERA_FPS=15
+ESP32_SERIAL_PORT=
+ESP32_BAUD_RATE=115200
+FACE_MATCH_THRESHOLD=0.45
+ATTENDANCE_COOLDOWN_SECONDS=60
 ```
 
-When the server starts, it will automatically connect to Firebase and bootstrap an initial Admin account based on the credentials in your `.env` file (Default: `admin@university.edu` / `changeme123`).
+Start it with the backend already running:
 
-If `USE_MOCK_AI=false`, the server will take an extra 1-2 minutes on the very first run to download the ONNX face recognition models into the `models/` directory.
+```bash
+python main.py
+```
 
----
+The client polls for an active session, captures camera frames, calls face recognition, records attendance, and queues records locally when the API is unavailable. If an ESP32 port is configured, successful recognition can open the door, buzz, and turn on the green LED. Without an ESP32, the bridge runs in no-op mode. Press `q` in the camera window to quit.
 
-## 6. Testing the API (Workflow)
+For Linux boot startup, see [rpi-client/README.md](rpi-client/README.md) for the systemd service example.
 
-FastAPI automatically generates an interactive documentation dashboard. Open your browser and go to:
-**http://localhost:8000/docs**
+## Security notes
 
-### API Workflow:
-
-1. **Login (Authenticate)**
-   - Find the `POST /api/v1/auth/login` endpoint.
-   - Click **"Try it out"** and enter the admin credentials from your `.env` file.
-   - Click **Execute**.
-   - Copy the `access_token` from the response.
-   - Scroll to the very top of the page, click the green **"Authorize"** button, paste the token, and click Authorize.
-
-2. **Create a Student**
-   - Go to `POST /api/v1/students/`, click "Try it out", and create a dummy student (e.g., student_id `"1001"`).
-
-3. **Create a Course**
-   - Go to `POST /api/v1/courses/`, click "Try it out", and create a course. Note the `course_id`.
-
-4. **Enroll the Student in the Course**
-   - Go to `POST /api/v1/courses/{course_id}/enroll`, paste the `course_id`, and provide the `student_id`.
-
-5. **Start an Attendance Session**
-   - Go to `POST /api/v1/attendance/sessions`. Pass the `course_id` to start a session. Note the `session_id`.
-
-6. **Enroll Face & Test Recognition**
-   - **Enroll:** Go to `POST /api/v1/faces/enroll/{student_id}` and upload a photo of a face. The AI pipeline will extract the embedding and save it to Firebase.
-   - **Recognize:** Go to `POST /api/v1/faces/recognize`, upload another photo of that same person. The system will match it against the database and return the matched `student_id` and confidence score.
-
-7. **View Reports**
-   - Go to `GET /api/v1/reports/course/{course_id}` to see updated attendance stats.
+- Keep `firebase-credentials.json` and `.env` files private.
+- Replace the default JWT and admin credentials before using a shared or production Firebase project.
+- Use the emulator for destructive or repeatable local tests to avoid modifying live attendance data.

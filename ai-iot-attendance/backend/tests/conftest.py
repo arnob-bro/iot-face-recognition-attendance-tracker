@@ -18,6 +18,26 @@ os.environ.setdefault("ADMIN_PASSWORD", "testpass123")
 os.environ.setdefault("ADMIN_NAME", "Test Admin")
 
 
+def _reset_firestore_collections():
+    """Ensure a clean emulator state before the test session starts."""
+    from app.core.firebase import init_firebase, get_db
+
+    init_firebase()
+    db = get_db()
+    for collection_name in [
+        "teachers",
+        "students",
+        "courses",
+        "enrollments",
+        "attendance_sessions",
+        "attendance_records",
+        "face_embeddings",
+    ]:
+        docs = db.collection(collection_name).stream()
+        for doc in docs:
+            doc.reference.delete()
+
+
 @pytest.fixture(scope="session")
 def client():
     """
@@ -26,6 +46,8 @@ def client():
     Uses the same app instance, including lifespan (Firebase init).
     Scoped to the entire test session for efficiency.
     """
+    _reset_firestore_collections()
+
     from app.main import app
 
     with TestClient(app) as c:

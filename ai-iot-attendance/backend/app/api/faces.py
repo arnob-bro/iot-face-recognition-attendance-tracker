@@ -147,11 +147,14 @@ async def recognize_face(
     result = ai_pipeline.process_frame(img)
     
     if not result["success"]:
-        return {
+        payload = {
             "matched": False,
             "message": result["message"]
         }
-        
+        if settings.liveness_enabled and "liveness_score" in result:
+            payload["liveness_score"] = float(result["liveness_score"])
+        return payload
+
     embedding = result["embedding"]
     
     # 2. Match against cache
@@ -159,15 +162,21 @@ async def recognize_face(
     student_id, confidence = embedding_manager.find_best_match(embedding, threshold=threshold)
     
     if student_id:
-        return {
+        response = {
             "matched": True,
             "student_id": student_id,
             "confidence": confidence,
             "message": f"Matched student {student_id}"
         }
-        
-    return {
+        if settings.liveness_enabled:
+            response["liveness_score"] = float(result.get("liveness_score", 1.0))
+        return response
+
+    response = {
         "matched": False,
         "confidence": confidence,
         "message": "Face detected, but no matching student found."
     }
+    if settings.liveness_enabled:
+        response["liveness_score"] = float(result.get("liveness_score", 1.0))
+    return response
