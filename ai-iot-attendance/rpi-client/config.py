@@ -7,9 +7,8 @@ class Settings(BaseSettings):
     """Settings for the Raspberry Pi attendance client."""
 
     api_url: str = "http://localhost:8000"
-    rpi_email: str = "admin@university.edu"
-    rpi_password: str = "changeme123"
-    course_id: str | None = None
+    device_id: str = "rpi-room-101"
+    device_secret: str = ""
 
     camera_index: int = 0
     camera_width: int = 640

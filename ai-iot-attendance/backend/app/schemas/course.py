@@ -2,8 +2,10 @@
 Course schemas — CRUD request/response models.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
+
+from app.schemas.common import normalize_timestamp
 
 
 class CourseCreate(BaseModel):
@@ -34,6 +36,12 @@ class CourseResponse(BaseModel):
     total_classes: int = 0
     created_at: str | None = None
 
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def serialize_created_at(cls, value):
+        """Normalize Firestore timestamps for API responses."""
+        return normalize_timestamp(value)
+
 
 class CourseListResponse(BaseModel):
     """List of courses."""
@@ -53,3 +61,9 @@ class EnrollmentResponse(BaseModel):
     student_id: str
     course_id: str
     enrolled_at: str | None = None
+
+    @field_validator("enrolled_at", mode="before")
+    @classmethod
+    def serialize_enrolled_at(cls, value):
+        """Normalize Firestore timestamps for API responses."""
+        return normalize_timestamp(value)

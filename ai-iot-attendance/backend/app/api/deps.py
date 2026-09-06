@@ -39,6 +39,7 @@ async def get_current_user(
         user_id=payload.get("sub", ""),
         email=payload.get("email", ""),
         role=payload.get("role", ""),
+        device_id=payload.get("device_id"),
     )
 
 

@@ -19,8 +19,7 @@ pip install -r requirements.txt
 Edit the `.env` file in this directory and set:
 
 - `API_URL` to the backend URL (default `http://localhost:8000`)
-- `RPI_EMAIL` and `RPI_PASSWORD` to admin or teacher credentials
-- `COURSE_ID` to a specific course, or leave blank to poll for any active session
+- `DEVICE_ID` and `DEVICE_SECRET` from the admin device-registration endpoint
 - `CAMERA_INDEX`, `CAMERA_WIDTH`, `CAMERA_HEIGHT`, `CAMERA_FPS`
 - `ESP32_SERIAL_PORT` such as `/dev/ttyUSB0` or `COM3`
 - `FACE_MATCH_THRESHOLD` and `ATTENDANCE_COOLDOWN_SECONDS`
@@ -28,10 +27,12 @@ Edit the `.env` file in this directory and set:
 ## 3. Hardware setup
 
 ### Webcam
+
 - Connect a USB camera or Raspberry Pi camera module.
 - Confirm the index is correct with OpenCV if detection fails.
 
 ### ESP32 bridge
+
 - Connect the ESP32 serial RX/TX pins to the Pi serial interface depending on your board.
 - Use `ESP32_SERIAL_PORT` to point at the correct device path.
 - If no board is present, the software will continue running in no-op mode.

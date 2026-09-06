@@ -2,14 +2,17 @@
 Attendance schemas — session management and attendance recording.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
+
+from app.schemas.common import normalize_timestamp
 
 
 class SessionCreate(BaseModel):
     """Request body for starting an attendance session."""
     course_id: str
     late_threshold_minutes: int = 15
+    device_id: str | None = None
 
 
 class SessionUpdate(BaseModel):
@@ -27,9 +30,15 @@ class SessionResponse(BaseModel):
     end_time: str | None = None
     late_threshold_minutes: int
     status: str  # "active", "completed", "cancelled"
+    device_id: str | None = None
     present_count: int = 0
     late_count: int = 0
     absent_count: int = 0
+
+    @field_validator("session_date", "start_time", "end_time", mode="before")
+    @classmethod
+    def serialize_session_times(cls, value):
+        return normalize_timestamp(value)
 
 
 class AttendanceRecordCreate(BaseModel):
@@ -49,6 +58,11 @@ class AttendanceRecordResponse(BaseModel):
     confidence: float = 0.0
     detected_at: str
     method: str = "face"
+
+    @field_validator("detected_at", mode="before")
+    @classmethod
+    def serialize_detected_at(cls, value):
+        return normalize_timestamp(value)
 
 
 class AttendanceSyncRequest(BaseModel):

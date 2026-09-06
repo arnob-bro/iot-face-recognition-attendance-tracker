@@ -65,7 +65,9 @@ python -m venv venv
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
 in raspberry pi linux terminal
+
 ```powershell
 python3 -m venv .venv
 source .venv/bin/activate
@@ -96,12 +98,14 @@ The verified local result is 16 passed and 3 skipped. Tests clear their Firestor
 Use the interactive documentation at `/docs`:
 
 1. Log in with `POST /api/v1/auth/login` and authorize with the returned bearer token.
-2. Create a student with `POST /api/v1/students/`.
-3. Create a course with `POST /api/v1/courses/` and enroll the student.
-4. Start a session with `POST /api/v1/attendance/sessions`.
-5. Enroll a face with `POST /api/v1/faces/enroll/{student_id}`.
-6. Recognize a frame with `POST /api/v1/faces/recognize`.
-7. Review attendance and reports through the attendance, dashboard, and reports endpoints.
+2. Register each Raspberry Pi with `POST /api/v1/devices` and save the returned secret securely.
+3. Create a student with `POST /api/v1/students/`.
+4. Create a course with `POST /api/v1/courses/` and enroll the student.
+5. Start a session with `POST /api/v1/attendance/sessions`, including the assigned `device_id`.
+6. Configure the Pi with that device ID and secret; it will poll only its assigned session.
+7. Enroll a face with `POST /api/v1/faces/enroll/{student_id}`.
+8. Recognize a frame with `POST /api/v1/faces/recognize`.
+9. Review attendance and reports through the attendance, dashboard, and reports endpoints.
 
 Recognition responses include a confidence value and, when liveness is enabled, a `liveness_score`. Face enrollment currently stores one representative sample per upload.
 

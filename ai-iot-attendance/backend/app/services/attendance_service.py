@@ -9,7 +9,10 @@ Implements session-based attendance with:
 """
 
 import logging
+import hashlib
 from datetime import datetime, timezone, timedelta
+
+from google.api_core.exceptions import AlreadyExists
 
 from app.core.firebase import get_db
 from app.core.exceptions import (
@@ -25,6 +28,11 @@ from app.schemas.attendance import (
     AttendanceRecordResponse,
     SessionDetailResponse,
 )
+from app.services.device_service import (
+    DEVICES_COLLECTION,
+    require_device_session_access,
+    touch_device,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +40,12 @@ SESSIONS_COLLECTION = "attendance_sessions"
 RECORDS_COLLECTION = "attendance_records"
 COURSES_COLLECTION = "courses"
 ENROLLMENTS_COLLECTION = "enrollments"
+
+
+def _record_document_id(session_id: str, student_id: str) -> str:
+    """Create a stable Firestore key for one student/session pair."""
+    value = f"{session_id}:{student_id}".encode("utf-8")
+    return hashlib.sha256(value).hexdigest()
 
 
 async def start_session(
@@ -49,6 +63,13 @@ async def start_session(
     if not course_doc.exists:
         raise NotFoundError("Course", data.course_id)
 
+    if data.device_id:
+        device_doc = db.collection(DEVICES_COLLECTION).document(data.device_id).get()
+        if not device_doc.exists:
+            raise NotFoundError("Raspberry Pi device", data.device_id)
+        if not device_doc.to_dict().get("enabled", True):
+            raise ValidationError("The assigned Raspberry Pi device is disabled.")
+
     # Check for existing active session on same course
     existing = (
         db.collection(SESSIONS_COLLECTION)
@@ -63,6 +84,17 @@ async def start_session(
             f"course {data.course_id}",
         )
 
+    if data.device_id:
+        device_sessions = (
+            db.collection(SESSIONS_COLLECTION)
+            .where("device_id", "==", data.device_id)
+            .where("status", "==", "active")
+            .limit(1)
+            .get()
+        )
+        if device_sessions:
+            raise DuplicateError("Active session", f"device {data.device_id}")
+
     now = datetime.now(timezone.utc)
     doc_data = {
         "course_id": data.course_id,
@@ -72,6 +104,7 @@ async def start_session(
         "end_time": None,
         "late_threshold_minutes": data.late_threshold_minutes,
         "status": "active",
+        "device_id": data.device_id,
     }
 
     doc_ref = db.collection(SESSIONS_COLLECTION).add(doc_data)
@@ -140,7 +173,7 @@ async def end_session(
 
 
 async def record_attendance(
-    session_id: str, data: AttendanceRecordCreate
+    session_id: str, data: AttendanceRecordCreate, device_id: str | None = None
 ) -> AttendanceRecordResponse:
     """
     Record a single attendance entry for a student in a session.
@@ -157,6 +190,7 @@ async def record_attendance(
         raise NotFoundError("Session", session_id)
 
     session_data = session_doc.to_dict()
+    require_device_session_access(session_data, device_id)
     if session_data["status"] != "active":
         raise ValidationError("Cannot record attendance for an inactive session.")
 
@@ -201,8 +235,18 @@ async def record_attendance(
         "method": data.method,
     }
 
-    doc_ref = db.collection(RECORDS_COLLECTION).add(record_data)
-    record_id = doc_ref[1].id
+    record_ref = db.collection(RECORDS_COLLECTION).document(
+        _record_document_id(session_id, data.student_id)
+    )
+    try:
+        record_ref.create(record_data)
+        record_id = record_ref.id
+    except AlreadyExists:
+        existing_doc = record_ref.get()
+        return AttendanceRecordResponse(
+            record_id=existing_doc.id,
+            **existing_doc.to_dict(),
+        )
 
     logger.info(
         f"Attendance: {data.student_id} → {status} "
@@ -213,7 +257,7 @@ async def record_attendance(
 
 
 async def bulk_sync_records(
-    session_id: str, records: list[AttendanceRecordCreate]
+    session_id: str, records: list[AttendanceRecordCreate], device_id: str | None = None
 ) -> list[AttendanceRecordResponse]:
     """
     Bulk sync attendance records from RPi offline queue.
@@ -223,7 +267,7 @@ async def bulk_sync_records(
     """
     results = []
     for record_data in records:
-        result = await record_attendance(session_id, record_data)
+        result = await record_attendance(session_id, record_data, device_id)
         results.append(result)
 
     logger.info(f"Bulk synced {len(results)} records for session {session_id}")
@@ -263,6 +307,7 @@ async def get_session(session_id: str) -> SessionDetailResponse:
 
 async def get_active_session(
     course_id: str | None = None,
+    device_id: str | None = None,
 ) -> SessionResponse | None:
     """Get the currently active session, optionally for a specific course."""
     db = get_db()
@@ -270,6 +315,8 @@ async def get_active_session(
 
     if course_id:
         query = query.where("course_id", "==", course_id)
+    if device_id:
+        query = query.where("device_id", "==", device_id)
 
     docs = query.limit(1).get()
 
@@ -277,6 +324,8 @@ async def get_active_session(
         return None
 
     doc = docs[0]
+    if device_id:
+        await touch_device(device_id)
     session_data = doc.to_dict()
     counts = await _get_session_counts(db, doc.id)
 

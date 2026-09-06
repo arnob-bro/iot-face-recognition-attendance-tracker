@@ -2,8 +2,10 @@
 Student schemas — CRUD request/response models.
 """
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
+
+from app.schemas.common import normalize_timestamp
 
 
 class StudentCreate(BaseModel):
@@ -34,6 +36,12 @@ class StudentResponse(BaseModel):
     is_active: bool = True
     face_enrolled: bool = False
     created_at: str | None = None
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def serialize_created_at(cls, value):
+        """Normalize Firestore timestamps and ISO strings for API responses."""
+        return normalize_timestamp(value)
 
 
 class StudentListResponse(BaseModel):

@@ -29,12 +29,13 @@ def main() -> None:
     )
 
     try:
-        api_client.login(settings.rpi_email, settings.rpi_password)
+        api_client.login_device(settings.device_id, settings.device_secret)
         logger.info("Authenticated to backend API.")
 
         last_session_poll = 0.0
         last_queue_drain = 0.0
         last_recorded = {}
+        active_session_id = None
         frame_id = 0
 
         # Frame-skipping: only send every Nth frame for recognition.
@@ -56,11 +57,13 @@ def main() -> None:
 
             if time.time() - last_session_poll >= 30:
                 try:
-                    active_session = api_client.get_active_session(settings.course_id)
+                    active_session = api_client.get_active_session()
                     if active_session:
+                        active_session_id = active_session.get("session_id")
                         logger.info(f"Active session detected: {active_session.get('session_id')}")
                         last_session_poll = time.time()
                     else:
+                        active_session_id = None
                         logger.info("No active session found; waiting for a class to start.")
                         last_session_poll = time.time()
                 except NetworkError as exc:
@@ -68,7 +71,7 @@ def main() -> None:
 
             if time.time() - last_queue_drain >= 300:
                 try:
-                    queue.drain(api_client, settings.course_id)
+                    queue.drain(api_client)
                     last_queue_drain = time.time()
                 except NetworkError:
                     logger.warning("Offline queue drain failed; will retry later.")
@@ -82,9 +85,7 @@ def main() -> None:
                 try:
                     recognition = api_client.recognize_face(jpeg_bytes)
                 except NetworkError as exc:
-                    logger.warning(f"Recognition request failed; queueing offline fallback: {exc}")
-                    if settings.course_id:
-                        queue.enqueue(settings.course_id, "offline_unknown", datetime.now(timezone.utc).isoformat(), 0.0)
+                    logger.warning(f"Recognition request failed: {exc}")
                     frame = draw_overlay(frame, last_status, last_student_name, last_confidence)
                     cv2.imshow("AI Attendance Camera", frame)
                     frame_id += 1
@@ -101,15 +102,7 @@ def main() -> None:
                     status = "matched"
                     student_name = str(recognition.get("student_id", "Unknown"))
                     confidence = float(recognition.get("confidence", 0.0))
-                    session_id = None
-                    try:
-                        active_session = api_client.get_active_session(settings.course_id)
-                        if active_session:
-                            session_id = active_session.get("session_id")
-                    except NetworkError:
-                        session_id = None
-
-                    if session_id:
+                    if active_session_id:
                         now = datetime.now(timezone.utc).isoformat()
                         student_key = str(recognition.get("student_id"))
                         last_key = last_recorded.get("student_id")
@@ -117,16 +110,18 @@ def main() -> None:
                         now_ts = time.time()
                         if not last_key or last_key != student_key or (now_ts - last_time) >= settings.attendance_cooldown_seconds:
                             try:
-                                api_client.record_attendance(session_id, student_key, confidence, "face_recognition")
-                                queue.enqueue(session_id, student_key, now, confidence)
+                                api_client.record_attendance(active_session_id, student_key, confidence, "face_recognition")
                                 last_recorded = {"student_id": student_key, "timestamp": now_ts}
                                 logger.info(f"Recorded attendance for {student_key} (confidence={confidence:.2f})")
                                 bridge.open_door()
                                 bridge.buzz()
                                 bridge.led_green()
-                            except NetworkError:
-                                logger.warning("Attendance record failed; saved to offline queue.")
-                                queue.enqueue(session_id, student_key, now, confidence)
+                            except NetworkError as exc:
+                                if exc.retryable:
+                                    logger.warning("Attendance record failed; saved to offline queue.")
+                                    queue.enqueue(active_session_id, student_key, now, confidence)
+                                else:
+                                    logger.warning(f"Attendance record rejected: {exc}")
                     else:
                         status = "unknown"
                 elif recognition.get("matched") is False:

@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.firebase import init_firebase, close_firebase
-from app.api import auth, students, courses, attendance, faces, reports, dashboard
+from app.api import auth, students, courses, attendance, faces, reports, dashboard, devices
 
 # Configure logging
 logging.basicConfig(
@@ -112,6 +112,7 @@ app.include_router(attendance.router, prefix=API_PREFIX)
 app.include_router(faces.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(dashboard.router, prefix=API_PREFIX)
+app.include_router(devices.router, prefix=API_PREFIX)
 
 
 # --- Health Check ---

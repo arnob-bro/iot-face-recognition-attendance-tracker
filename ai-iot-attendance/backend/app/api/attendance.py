@@ -48,6 +48,17 @@ async def update_session(
     )
 
 
+@router.get("/sessions/active", response_model=SessionResponse | None)
+async def get_active_session(
+    course_id: str | None = Query(None),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """Get the currently active attendance session."""
+    return await attendance_service.get_active_session(
+        course_id, current_user.device_id
+    )
+
+
 @router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 async def get_session(
     session_id: str,
@@ -55,15 +66,6 @@ async def get_session(
 ):
     """Get session details including all attendance records."""
     return await attendance_service.get_session(session_id)
-
-
-@router.get("/sessions/active", response_model=SessionResponse | None)
-async def get_active_session(
-    course_id: str | None = Query(None),
-    _: UserInToken = Depends(get_current_user),
-):
-    """Get the currently active attendance session."""
-    return await attendance_service.get_active_session(course_id)
 
 
 @router.post(
@@ -74,7 +76,7 @@ async def get_active_session(
 async def record_attendance(
     session_id: str,
     data: AttendanceRecordCreate,
-    _: UserInToken = Depends(get_current_user),
+    current_user: UserInToken = Depends(get_current_user),
 ):
     """
     Record a single attendance entry.
@@ -82,7 +84,9 @@ async def record_attendance(
     Typically called by the Raspberry Pi client after face recognition.
     Handles duplicate prevention automatically.
     """
-    return await attendance_service.record_attendance(session_id, data)
+    return await attendance_service.record_attendance(
+        session_id, data, current_user.device_id
+    )
 
 
 @router.post(
@@ -92,7 +96,7 @@ async def record_attendance(
 async def sync_records(
     session_id: str,
     data: AttendanceSyncRequest,
-    _: UserInToken = Depends(get_current_user),
+    current_user: UserInToken = Depends(get_current_user),
 ):
     """
     Bulk sync attendance records from the RPi offline queue.
@@ -100,5 +104,5 @@ async def sync_records(
     Idempotent — duplicate records are skipped automatically.
     """
     return await attendance_service.bulk_sync_records(
-        session_id, data.records
+        session_id, data.records, current_user.device_id
     )
