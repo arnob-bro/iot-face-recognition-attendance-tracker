@@ -45,6 +45,33 @@ python main.py
 
 Use `q` to quit the app.
 
+## 6. Long-run heat test
+
+Run the attendance client normally, then open a second SSH session and start the logger:
+for 2 hours within 5mins interval
+
+```bash
+cd /home/pi/ai-iot-attendance/rpi-client
+python tools/heat_test.py --output logs/heat-test.csv --interval 5 --duration 7200
+```
+
+for long run within 5mins interval
+
+```bash
+cd /home/pi/ai-iot-attendance/rpi-client
+python tools/heat_test.py --output logs/heat-test.csv --interval 5
+```
+
+The logger records a row every five seconds for two hours. Use `--duration 0` to run until `Ctrl+C`.
+The CSV includes UTC time, elapsed time, CPU temperature, CPU usage, memory usage, attendance process count,
+and the Raspberry Pi throttling status. The file is flushed after every row, so data already recorded survives
+an unexpected shutdown.
+
+During the test, keep the camera and recognition workload representative of normal use. Review the CSV after
+the test and check for rising temperature, `attendance_processes` becoming `0` or greater than `1`, and a
+`throttled` value other than `0x0`. Raspberry Pi thermal throttling is indicated by the throttled status and
+can cause the camera preview and recognition to slow down.
+
 ## 5. Auto-start on boot (systemd)
 
 Create a service file such as `/etc/systemd/system/rpi-attendance.service`:
