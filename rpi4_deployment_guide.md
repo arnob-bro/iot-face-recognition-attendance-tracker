@@ -4,10 +4,10 @@
 
 Your project is a **two-component system**:
 
-| Component | Role | Where it runs |
-|-----------|------|---------------|
-| **Backend** ([backend/](file:///c:/iot-face-recognition-attendance-tracker/ai-iot-attendance/backend)) | FastAPI server + AI pipeline (SCRFD detection, ArcFace recognition, MiniFASNet liveness) + Firebase Firestore | Server or RPi |
-| **RPi Client** ([rpi-client/](file:///c:/iot-face-recognition-attendance-tracker/ai-iot-attendance/rpi-client)) | Camera capture, sends JPEG frames to backend API, shows OpenCV overlay, ESP32 serial bridge, SQLite offline queue | Raspberry Pi |
+| Component                                                                                                       | Role                                                                                                              | Where it runs |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------- |
+| **Backend** ([backend/](file:///c:/iot-face-recognition-attendance-tracker/ai-iot-attendance/backend))          | FastAPI server + AI pipeline (SCRFD detection, ArcFace recognition, MiniFASNet liveness) + Firebase Firestore     | Server or RPi |
+| **RPi Client** ([rpi-client/](file:///c:/iot-face-recognition-attendance-tracker/ai-iot-attendance/rpi-client)) | Camera capture, sends JPEG frames to backend API, shows OpenCV overlay, ESP32 serial bridge, SQLite offline queue | Raspberry Pi  |
 
 > [!IMPORTANT]
 > The RPi client is a **thin client** — it captures frames and sends them to the backend for AI processing. It does **not** run face detection/recognition/liveness locally. This is a critical architectural distinction that affects your deployment options.
@@ -115,6 +115,7 @@ pip install -r requirements.txt
 
 > [!WARNING]
 > `insightface` installation can take 10-20 minutes on the Pi because it compiles Cython extensions. If it fails, try:
+>
 > ```bash
 > pip install cython numpy
 > pip install insightface --no-build-isolation
@@ -191,6 +192,8 @@ cd ~/ai-iot-attendance/rpi-client
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip uninstall opencv-python-headless -y
+pip install opencv-python
 ```
 
 ### 8. Configure the RPi Client `.env`
@@ -271,11 +274,11 @@ CAMERA_FPS=10         # Lower from 15 to 10 to reduce CPU load from capture
 
 The RPi client currently sends **every frame** to the backend for recognition. This is the biggest performance issue. Consider these improvements:
 
-| Strategy | Impact |
-|----------|--------|
-| Skip frames (process every 3rd-5th frame) | ~3-5× reduction in API calls |
-| Only send when motion is detected | Massive reduction when no one is present |
-| Add a cooldown between recognition attempts | Prevents hammering the AI pipeline |
+| Strategy                                    | Impact                                   |
+| ------------------------------------------- | ---------------------------------------- |
+| Skip frames (process every 3rd-5th frame)   | ~3-5× reduction in API calls             |
+| Only send when motion is detected           | Massive reduction when no one is present |
+| Add a cooldown between recognition attempts | Prevents hammering the AI pipeline       |
 
 ---
 
@@ -359,10 +362,12 @@ journalctl -u rpi-attendance.service -f
 ## Hardware Wiring Summary
 
 ### Camera
+
 - **USB Webcam**: Plug into any USB port, set `CAMERA_INDEX=0`
 - **Pi Camera Module**: Enable via `sudo raspi-config` → Interface Options → Camera. Use `CAMERA_INDEX=0` (OpenCV uses V4L2 backend)
 
 ### ESP32 Bridge
+
 - Connect ESP32 via USB cable to Pi
 - Find the port: `ls /dev/ttyUSB* /dev/ttyACM*`
 - Set `ESP32_SERIAL_PORT=/dev/ttyUSB0` (or whichever appears)
@@ -370,6 +375,7 @@ journalctl -u rpi-attendance.service -f
 - If no ESP32 is connected, the bridge runs in no-op mode — no crash
 
 ### Network
+
 - WiFi or Ethernet for Firebase connectivity
 - The [OfflineQueue](file:///c:/iot-face-recognition-attendance-tracker/ai-iot-attendance/rpi-client/offline/queue.py) handles network outages using a local SQLite database
 
@@ -377,15 +383,15 @@ journalctl -u rpi-attendance.service -f
 
 ## Expected Performance on RPi 4 (8GB)
 
-| Metric | Estimated Value |
-|--------|----------------|
-| RAM usage (backend + client) | ~1.5-2.5 GB |
-| First startup time | 30-90 seconds (model loading) |
-| SCRFD face detection | ~200-500ms per frame |
-| ArcFace embedding generation | ~100-300ms per frame |
-| MiniFASNet liveness (2 models) | ~50-150ms per frame |
-| **Total per-frame pipeline** | **~400ms - 1s** |
-| CPU temperature under load | 65-80°C (with heatsink) |
+| Metric                         | Estimated Value               |
+| ------------------------------ | ----------------------------- |
+| RAM usage (backend + client)   | ~1.5-2.5 GB                   |
+| First startup time             | 30-90 seconds (model loading) |
+| SCRFD face detection           | ~200-500ms per frame          |
+| ArcFace embedding generation   | ~100-300ms per frame          |
+| MiniFASNet liveness (2 models) | ~50-150ms per frame           |
+| **Total per-frame pipeline**   | **~400ms - 1s**               |
+| CPU temperature under load     | 65-80°C (with heatsink)       |
 
 > [!TIP]
 > At ~1 second per frame, you'll process roughly **1 face per second**. This is perfectly fine for a classroom entrance where students enter one at a time. You do NOT need 15 FPS for recognition — you need 15 FPS only for the camera preview display.
@@ -409,13 +415,13 @@ journalctl -u rpi-attendance.service -f
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `insightface` fails to install | Install `cython` and `numpy` first, use `--no-build-isolation` |
-| Camera not detected | Run `v4l2-ctl --list-devices`, try different `CAMERA_INDEX` |
-| `onnxruntime` import error | Ensure you're using 64-bit OS; install via `pip install onnxruntime` |
-| Backend crashes on startup | Check `firebase-credentials.json` exists and `.env` is correct |
-| Very slow inference | Check `vcgencmd get_throttled` — if not `0x0`, improve cooling |
-| ESP32 not responding | Check port with `ls /dev/ttyUSB*`, ensure baud rate matches |
-| `cv2.imshow` fails (headless) | Use `opencv-python-headless` and remove `cv2.imshow` calls, or run with `DISPLAY=:0` |
-| No active session found | Create a session first via the backend API at `/docs` |
+| Problem                        | Solution                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `insightface` fails to install | Install `cython` and `numpy` first, use `--no-build-isolation`                       |
+| Camera not detected            | Run `v4l2-ctl --list-devices`, try different `CAMERA_INDEX`                          |
+| `onnxruntime` import error     | Ensure you're using 64-bit OS; install via `pip install onnxruntime`                 |
+| Backend crashes on startup     | Check `firebase-credentials.json` exists and `.env` is correct                       |
+| Very slow inference            | Check `vcgencmd get_throttled` — if not `0x0`, improve cooling                       |
+| ESP32 not responding           | Check port with `ls /dev/ttyUSB*`, ensure baud rate matches                          |
+| `cv2.imshow` fails (headless)  | Use `opencv-python-headless` and remove `cv2.imshow` calls, or run with `DISPLAY=:0` |
+| No active session found        | Create a session first via the backend API at `/docs`                                |
