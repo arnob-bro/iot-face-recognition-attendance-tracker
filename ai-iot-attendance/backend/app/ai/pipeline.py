@@ -37,6 +37,40 @@ class AIPipeline:
     Main orchestration class for the AI workflow.
     """
 
+    @staticmethod
+    def _select_best_face(detections: list[dict], image_shape: tuple[int, int, int] | tuple[int, int]) -> dict | None:
+        """Choose the most relevant face when multiple faces are detected.
+
+        Priority is given to the largest face and then to faces closer to the
+        image center. This keeps the system usable in real-world classroom or
+        entry-gate scenarios where more than one person may appear in frame.
+        """
+        if not detections:
+            return None
+
+        height, width = image_shape[:2]
+        center_x = width / 2.0
+        center_y = height / 2.0
+
+        def score(face: dict) -> float:
+            bbox = face.get("bbox")
+            if bbox is None:
+                return float("-inf")
+
+            x1, y1, x2, y2 = [float(v) for v in bbox]
+            area = max(0.0, (x2 - x1) * (y2 - y1))
+            face_center_x = (x1 + x2) / 2.0
+            face_center_y = (y1 + y2) / 2.0
+            distance_to_center = ((face_center_x - center_x) ** 2 + (face_center_y - center_y) ** 2) ** 0.5
+
+            # Prefer bigger faces, with a smaller penalty for being far from the center.
+            return area - (distance_to_center * 0.3)
+
+        chosen = max(detections, key=score)
+        if chosen.get("bbox") is None:
+            return None
+        return chosen
+
     def __init__(self):
         self.use_mock = settings.use_mock_ai
         self.liveness_checker: LivenessChecker | None = None
@@ -81,16 +115,18 @@ class AIPipeline:
         """
         # 1. Detection
         detections = self.detector.detect(image)
-        
+
         if not detections:
             return {"success": False, "message": "No face detected in frame."}
-            
+
         if len(detections) > 1:
-            # For strict enrollment/recognition, we often want exactly one face
-            return {"success": False, "message": "Multiple faces detected. Please ensure only one face is in frame."}
-            
-        face_data = detections[0]
-        
+            logger.info(f"Multiple faces detected ({len(detections)}). Selecting the best candidate.")
+            face_data = self._select_best_face(detections, image.shape)
+            if face_data is None:
+                return {"success": False, "message": "No valid face could be selected from the frame."}
+        else:
+            face_data = detections[0]
+
         # Check basic quality / size
         bbox = face_data.get("bbox")
         if bbox:
