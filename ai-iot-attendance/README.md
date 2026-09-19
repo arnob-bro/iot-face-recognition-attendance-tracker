@@ -127,91 +127,93 @@ The backend exposes all routes under `/api/v1`, and authorization is enforced th
 
 ### Public / health endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/health` | No | Public | None | Backend health check. |
-| POST | `/api/v1/auth/login` | No | Public | `email`, `password` | Login as admin or teacher and receive a JWT. |
-| POST | `/api/v1/devices/login` | No | Public | `device_id`, `device_secret` | Login a registered Raspberry Pi and receive a device JWT. |
+| Method | Endpoint                | Auth required | Allowed roles | Required data                | Description                                               |
+| ------ | ----------------------- | ------------- | ------------- | ---------------------------- | --------------------------------------------------------- |
+| GET    | `/health`               | No            | Public        | None                         | Backend health check.                                     |
+| POST   | `/api/v1/auth/login`    | No            | Public        | `email`, `password`          | Login as admin or teacher and receive a JWT.              |
+| POST   | `/api/v1/devices/login` | No            | Public        | `device_id`, `device_secret` | Login a registered Raspberry Pi and receive a device JWT. |
 
 ### Authentication and profile endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register` | Yes | `admin` | `name`, `email`, `password`, optional `role` (`teacher` or `admin`) | Create a new teacher/admin account. |
-| GET | `/api/v1/auth/me` | Yes | `admin`, `teacher`, `device` | None | Returns the authenticated user's profile. |
-| GET | `/api/v1/devices/me` | Yes | `device` | None | Returns the device profile for the current device token. |
-| GET | `/api/v1/dashboard/stats` | Yes | `admin`, `teacher`, `device` | None | Returns dashboard stats for the current user. |
+| Method | Endpoint                             | Auth required | Allowed roles                | Required data                                                       | Description                                                              |
+| ------ | ------------------------------------ | ------------- | ---------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| POST   | `/api/v1/auth/register`              | Yes           | `admin`                      | `name`, `email`, `password`, optional `role` (`teacher` or `admin`) | Create a new teacher/admin account.                                      |
+| GET    | `/api/v1/auth/me`                    | Yes           | `admin`, `teacher`, `device` | None                                                                | Returns the authenticated user's profile.                                |
+| GET    | `/api/v1/auth/teachers`              | Yes           | `admin`                      | None                                                                | `admin` sees all teachers/admins; `teacher` sees only their own profile. |
+| GET    | `/api/v1/auth/teachers/{teacher_id}` | Yes           | `admin`                      | Path: `teacher_id`                                                  | `admin` can view any teacher. `teacher` can only view their own profile. |
+| GET    | `/api/v1/devices/me`                 | Yes           | `device`                     | None                                                                | Returns the device profile for the current device token.                 |
+| GET    | `/api/v1/dashboard/stats`            | Yes           | `admin`, `teacher`, `device` | None                                                                | Returns dashboard stats for the current user.                            |
 
 ### Student management endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/students/` | Yes | `admin`, `teacher` | Query: `department` (optional), `batch` (optional), `course_id` (optional) | List students with optional filters. |
-| POST | `/api/v1/students/` | Yes | `admin` | Body: `student_id`, `name`, `department`, `batch`, `email`, optional `course_ids` | Create a student record. |
-| GET | `/api/v1/students/{student_id}` | Yes | `admin`, `teacher` | Path: `student_id` | Fetch a specific student. |
-| PUT | `/api/v1/students/{student_id}` | Yes | `admin` | Path: `student_id`; body: any of `name`, `department`, `batch`, `email` | Update student details. |
-| DELETE | `/api/v1/students/{student_id}` | Yes | `admin` | Path: `student_id` | Deactivate a student. |
-| GET | `/api/v1/students/{student_id}/attendance` | Yes | `admin`, `teacher` | Path: `student_id`; query: `course_id` (optional) | Get a student's attendance history. |
+| Method | Endpoint                                   | Auth required | Allowed roles      | Required data                                                                     | Description                          |
+| ------ | ------------------------------------------ | ------------- | ------------------ | --------------------------------------------------------------------------------- | ------------------------------------ |
+| GET    | `/api/v1/students/`                        | Yes           | `admin`, `teacher` | Query: `department` (optional), `batch` (optional), `course_id` (optional)        | List students with optional filters. |
+| POST   | `/api/v1/students/`                        | Yes           | `admin`            | Body: `student_id`, `name`, `department`, `batch`, `email`, optional `course_ids` | Create a student record.             |
+| GET    | `/api/v1/students/{student_id}`            | Yes           | `admin`, `teacher` | Path: `student_id`                                                                | Fetch a specific student.            |
+| PUT    | `/api/v1/students/{student_id}`            | Yes           | `admin`            | Path: `student_id`; body: any of `name`, `department`, `batch`, `email`           | Update student details.              |
+| DELETE | `/api/v1/students/{student_id}`            | Yes           | `admin`            | Path: `student_id`                                                                | Deactivate a student.                |
+| GET    | `/api/v1/students/{student_id}/attendance` | Yes           | `admin`, `teacher` | Path: `student_id`; query: `course_id` (optional)                                 | Get a student's attendance history.  |
 
 ### Course management endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/courses/` | Yes | `admin`, `teacher` | Query: `teacher_id` (optional), `department` (optional) | List courses. |
-| POST | `/api/v1/courses/` | Yes | `admin` | Body: `course_code`, `course_name`, `department`, `section`, `teacher_id` | Create a course. |
-| GET | `/api/v1/courses/{course_id}` | Yes | `admin`, `teacher` | Path: `course_id` | Get one course by ID. |
-| PUT | `/api/v1/courses/{course_id}` | Yes | `admin` | Path: `course_id`; body: any of `course_name`, `department`, `section`, `teacher_id` | Update a course. |
-| DELETE | `/api/v1/courses/{course_id}` | Yes | `admin` | Path: `course_id` | Delete a course and its enrollments. |
-| GET | `/api/v1/courses/{course_id}/students` | Yes | `admin`, `teacher` | Path: `course_id` | List all students enrolled in a course. |
-| POST | `/api/v1/courses/{course_id}/enroll` | Yes | `admin` | Path: `course_id`; body: `student_id`, `course_id` | Enroll a student in a course. |
-| DELETE | `/api/v1/courses/{course_id}/enroll/{student_id}` | Yes | `admin` | Path: `course_id`, `student_id` | Unenroll a student from a course. |
+| Method | Endpoint                                          | Auth required | Allowed roles      | Required data                                                                        | Description                             |
+| ------ | ------------------------------------------------- | ------------- | ------------------ | ------------------------------------------------------------------------------------ | --------------------------------------- |
+| GET    | `/api/v1/courses/`                                | Yes           | `admin`, `teacher` | Query: `teacher_id` (optional), `department` (optional)                              | List courses.                           |
+| POST   | `/api/v1/courses/`                                | Yes           | `admin`            | Body: `course_code`, `course_name`, `department`, `section`, `teacher_id`            | Create a course.                        |
+| GET    | `/api/v1/courses/{course_id}`                     | Yes           | `admin`, `teacher` | Path: `course_id`                                                                    | Get one course by ID.                   |
+| PUT    | `/api/v1/courses/{course_id}`                     | Yes           | `admin`            | Path: `course_id`; body: any of `course_name`, `department`, `section`, `teacher_id` | Update a course.                        |
+| DELETE | `/api/v1/courses/{course_id}`                     | Yes           | `admin`            | Path: `course_id`                                                                    | Delete a course and its enrollments.    |
+| GET    | `/api/v1/courses/{course_id}/students`            | Yes           | `admin`, `teacher` | Path: `course_id`                                                                    | List all students enrolled in a course. |
+| POST   | `/api/v1/courses/{course_id}/enroll`              | Yes           | `admin`            | Path: `course_id`; body: `student_id`, `course_id`                                   | Enroll a student in a course.           |
+| DELETE | `/api/v1/courses/{course_id}/enroll/{student_id}` | Yes           | `admin`            | Path: `course_id`, `student_id`                                                      | Unenroll a student from a course.       |
 
 ### Attendance session endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/api/v1/attendance/sessions` | Yes | `admin`, `teacher` | Body: `course_id`, optional `late_threshold_minutes`, optional `device_id` | Start an attendance session. |
-| PUT | `/api/v1/attendance/sessions/{session_id}` | Yes | `admin`, `teacher` | Path: `session_id`; body: `status` (`completed` or `cancelled`) | End or cancel a session. |
-| GET | `/api/v1/attendance/sessions/active` | Yes | `admin`, `teacher`, `device` | Query: `course_id` (optional) | Get the currently active session. For Pi devices, it checks the assigned device. |
-| GET | `/api/v1/attendance/sessions/{session_id}` | Yes | `admin`, `teacher` | Path: `session_id` | Fetch a session and all attendance records. |
-| POST | `/api/v1/attendance/sessions/{session_id}/record` | Yes | `admin`, `teacher`, `device` | Path: `session_id`; body: `student_id`, `confidence`, `method` | Record one attendance event from a recognized student. |
-| POST | `/api/v1/attendance/sessions/{session_id}/sync` | Yes | `admin`, `teacher`, `device` | Path: `session_id`; body: `records: [{student_id, confidence, method}]` | Bulk-sync offline attendance records from a Pi. |
+| Method | Endpoint                                          | Auth required | Allowed roles                | Required data                                                              | Description                                                                      |
+| ------ | ------------------------------------------------- | ------------- | ---------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| POST   | `/api/v1/attendance/sessions`                     | Yes           | `admin`, `teacher`           | Body: `course_id`, optional `late_threshold_minutes`, optional `device_id` | Start an attendance session.                                                     |
+| PUT    | `/api/v1/attendance/sessions/{session_id}`        | Yes           | `admin`, `teacher`           | Path: `session_id`; body: `status` (`completed` or `cancelled`)            | End or cancel a session.                                                         |
+| GET    | `/api/v1/attendance/sessions/active`              | Yes           | `admin`, `teacher`, `device` | Query: `course_id` (optional)                                              | Get the currently active session. For Pi devices, it checks the assigned device. |
+| GET    | `/api/v1/attendance/sessions/{session_id}`        | Yes           | `admin`, `teacher`           | Path: `session_id`                                                         | Fetch a session and all attendance records.                                      |
+| POST   | `/api/v1/attendance/sessions/{session_id}/record` | Yes           | `admin`, `teacher`, `device` | Path: `session_id`; body: `student_id`, `confidence`, `method`             | Record one attendance event from a recognized student.                           |
+| POST   | `/api/v1/attendance/sessions/{session_id}/sync`   | Yes           | `admin`, `teacher`, `device` | Path: `session_id`; body: `records: [{student_id, confidence, method}]`    | Bulk-sync offline attendance records from a Pi.                                  |
 
 ### Face enrollment and recognition endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/api/v1/faces/enroll/{student_id}` | Yes | `admin` | Path: `student_id`; file upload (`file`) | Upload a face image to enroll a student. |
-| GET | `/api/v1/faces/status/{student_id}` | Yes | `admin`, `teacher`, `device` | Path: `student_id` | Check whether a student has an enrollment record. |
-| DELETE | `/api/v1/faces/{student_id}` | Yes | `admin` | Path: `student_id` | Remove a student's face enrollment. |
-| POST | `/api/v1/faces/recognize` | Yes | `admin`, `teacher`, `device` | File upload (`file`) | Submit a camera frame for face recognition. Returns matched student data and confidence. |
+| Method | Endpoint                            | Auth required | Allowed roles                | Required data                            | Description                                                                              |
+| ------ | ----------------------------------- | ------------- | ---------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/faces/enroll/{student_id}` | Yes           | `admin`                      | Path: `student_id`; file upload (`file`) | Upload a face image to enroll a student.                                                 |
+| GET    | `/api/v1/faces/status/{student_id}` | Yes           | `admin`, `teacher`, `device` | Path: `student_id`                       | Check whether a student has an enrollment record.                                        |
+| DELETE | `/api/v1/faces/{student_id}`        | Yes           | `admin`                      | Path: `student_id`                       | Remove a student's face enrollment.                                                      |
+| POST   | `/api/v1/faces/recognize`           | Yes           | `admin`, `teacher`, `device` | File upload (`file`)                     | Submit a camera frame for face recognition. Returns matched student data and confidence. |
 
 ### Reporting endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/reports/daily` | Yes | `admin`, `teacher` | Query: `course_id`, `date` (`YYYY-MM-DD`) | Get daily attendance report for a course. |
-| GET | `/api/v1/reports/weekly` | Yes | `admin`, `teacher` | Query: `course_id`, `start_date` (`YYYY-MM-DD`) | Get 7-day attendance breakdown. |
-| GET | `/api/v1/reports/monthly` | Yes | `admin`, `teacher` | Query: `course_id`, `year`, `month` (1-12) | Get monthly attendance breakdown. |
-| GET | `/api/v1/reports/course/{course_id}` | Yes | `admin`, `teacher` | Path: `course_id` | Get a course-wide attendance summary. |
-| GET | `/api/v1/reports/student/{student_id}` | Yes | `admin`, `teacher` | Path: `student_id` | Get a student's attendance summary across courses. |
-| GET | `/api/v1/reports/export` | Yes | `admin`, `teacher` | Query: optional `course_id`, `student_id`, `start_date`, `end_date` | Export attendance results as a CSV file. |
+| Method | Endpoint                               | Auth required | Allowed roles      | Required data                                                       | Description                                        |
+| ------ | -------------------------------------- | ------------- | ------------------ | ------------------------------------------------------------------- | -------------------------------------------------- |
+| GET    | `/api/v1/reports/daily`                | Yes           | `admin`, `teacher` | Query: `course_id`, `date` (`YYYY-MM-DD`)                           | Get daily attendance report for a course.          |
+| GET    | `/api/v1/reports/weekly`               | Yes           | `admin`, `teacher` | Query: `course_id`, `start_date` (`YYYY-MM-DD`)                     | Get 7-day attendance breakdown.                    |
+| GET    | `/api/v1/reports/monthly`              | Yes           | `admin`, `teacher` | Query: `course_id`, `year`, `month` (1-12)                          | Get monthly attendance breakdown.                  |
+| GET    | `/api/v1/reports/course/{course_id}`   | Yes           | `admin`, `teacher` | Path: `course_id`                                                   | Get a course-wide attendance summary.              |
+| GET    | `/api/v1/reports/student/{student_id}` | Yes           | `admin`, `teacher` | Path: `student_id`                                                  | Get a student's attendance summary across courses. |
+| GET    | `/api/v1/reports/export`               | Yes           | `admin`, `teacher` | Query: optional `course_id`, `student_id`, `start_date`, `end_date` | Export attendance results as a CSV file.           |
 
 ### Raspberry Pi device registration endpoints
 
-| Method | Endpoint | Auth required | Allowed roles | Required data | Description |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/api/v1/devices` | Yes | `admin` | Body: `device_id`, `name`, `location` | Register a Raspberry Pi and receive a one-time secret. |
-| GET | `/api/v1/devices` | Yes | `admin` | None | List all registered devices. |
-| PUT | `/api/v1/devices/{device_id}/enabled` | Yes | `admin` | Path: `device_id`; query/body flag: `enabled` | Enable or disable a device. |
+| Method | Endpoint                              | Auth required | Allowed roles | Required data                                 | Description                                            |
+| ------ | ------------------------------------- | ------------- | ------------- | --------------------------------------------- | ------------------------------------------------------ |
+| POST   | `/api/v1/devices`                     | Yes           | `admin`       | Body: `device_id`, `name`, `location`         | Register a Raspberry Pi and receive a one-time secret. |
+| GET    | `/api/v1/devices`                     | Yes           | `admin`       | None                                          | List all registered devices.                           |
+| PUT    | `/api/v1/devices/{device_id}/enabled` | Yes           | `admin`       | Path: `device_id`; query/body flag: `enabled` | Enable or disable a device.                            |
 
 ### Role summary
 
-| Role | Access level |
-| --- | --- |
-| `admin` | Full system admin access: create/update/delete students, courses, devices, teacher accounts, and face enrollments. |
-| `teacher` | Operational access to courses, students, attendance sessions, reports, and dashboard data. |
-| `device` | Device-only access for session polling, attendance recording, device status, and recognition. |
+| Role      | Access level                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin`   | Full system admin access: create/update/delete students, courses, devices, teacher accounts, and face enrollments. Can list every teacher and view any teacher detail.    |
+| `teacher` | Operational access to courses, students, attendance sessions, reports, and dashboard data. Can view only their own teacher profile and self-limited teacher listing data. |
+| `device`  | Device-only access for session polling, attendance recording, device status, and recognition.                                                                             |
 
 There is no dedicated `student` role in the current backend implementation.
 

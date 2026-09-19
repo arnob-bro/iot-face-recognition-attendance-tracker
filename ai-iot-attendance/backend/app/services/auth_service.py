@@ -128,6 +128,40 @@ async def get_current_user(user_id: str) -> TeacherResponse:
     )
 
 
+async def get_all_teachers() -> list[TeacherResponse]:
+    """Return all teachers/admins. Intended for admin-only list endpoints."""
+    db = get_db()
+    docs = db.collection(TEACHERS_COLLECTION).stream()
+    return [
+        TeacherResponse(
+            teacher_id=doc.id,
+            name=doc.to_dict()["name"],
+            email=doc.to_dict()["email"],
+            role=doc.to_dict()["role"],
+            created_at=doc.to_dict().get("created_at"),
+        )
+        for doc in docs
+    ]
+
+
+async def get_teacher_by_id(teacher_id: str) -> TeacherResponse:
+    """Return a single teacher/admin by document ID."""
+    db = get_db()
+    doc = db.collection(TEACHERS_COLLECTION).document(teacher_id).get()
+
+    if not doc.exists:
+        raise NotFoundError("Teacher", teacher_id)
+
+    data = doc.to_dict()
+    return TeacherResponse(
+        teacher_id=doc.id,
+        name=data["name"],
+        email=data["email"],
+        role=data["role"],
+        created_at=data.get("created_at"),
+    )
+
+
 async def bootstrap_admin(email: str, password: str, name: str) -> None:
     """
     Create the initial admin account if no admins exist.
