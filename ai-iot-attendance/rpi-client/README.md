@@ -45,6 +45,23 @@ python main.py
 
 Use `q` to quit the app.
 
+If startup reports that `cv2.VideoCapture` is unavailable, verify that the virtual
+environment is loading the expected OpenCV package:
+
+```bash
+python -c "import cv2; print(cv2.__file__); print(cv2.__version__); print(hasattr(cv2, 'VideoCapture'))"
+```
+
+The final value must be `True`. If it is `False`, repair the active environment:
+
+```bash
+python -m pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless
+python -m pip install --force-reinstall opencv-python-headless
+```
+
+Run those commands from `rpi-client` with its `.venv` activated. Also check that
+there is no file or directory named `cv2.py` or `cv2` in the client directory.
+
 ## 6. Long-run heat test
 
 Run the attendance client normally, then open a second SSH session and start the logger:

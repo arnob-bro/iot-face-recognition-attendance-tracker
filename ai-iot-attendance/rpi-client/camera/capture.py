@@ -20,6 +20,11 @@ class WebcamCapture:
         self._open()
 
     def _open(self) -> bool:
+        if not hasattr(cv2, "VideoCapture"):
+            raise RuntimeError(
+                "OpenCV VideoCapture is unavailable. Reinstall opencv-python-headless "
+                "in the active virtual environment and check for a local cv2.py file."
+            )
         self.cap = cv2.VideoCapture(self.index)
         if not self.cap.isOpened():
             logger.warning(f"Failed to open camera index {self.index}.")
