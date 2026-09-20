@@ -2,7 +2,11 @@
 
 from fastapi import APIRouter, Depends
 
-from app.api.deps import require_admin, get_current_user
+from app.api.deps import (
+    require_admin,
+    require_teacher_or_admin,
+    get_current_user,
+)
 from app.schemas.auth import (
     DeviceCreate,
     DeviceCreateResponse,
@@ -26,7 +30,7 @@ async def register_device(
 
 
 @router.get("", response_model=list[DeviceResponse])
-async def list_devices(_: UserInToken = Depends(require_admin)):
+async def list_devices(_: UserInToken = Depends(require_teacher_or_admin)):
     return await device_service.list_devices()
 
 
