@@ -201,11 +201,11 @@ The backend exposes all routes under `/api/v1`, and authorization is enforced th
 
 ### Raspberry Pi device registration endpoints
 
-| Method | Endpoint                              | Auth required | Allowed roles | Required data                                 | Description                                            |
-| ------ | ------------------------------------- | ------------- | ------------- | --------------------------------------------- | ------------------------------------------------------ |
-| POST   | `/api/v1/devices`                     | Yes           | `admin`       | Body: `device_id`, `name`, `location`         | Register a Raspberry Pi and receive a one-time secret. |
-| GET    | `/api/v1/devices`                     | Yes           | `admin`       | None                                          | List all registered devices.                           |
-| PUT    | `/api/v1/devices/{device_id}/enabled` | Yes           | `admin`       | Path: `device_id`; query/body flag: `enabled` | Enable or disable a device.                            |
+| Method | Endpoint                              | Auth required | Allowed roles      | Required data                                 | Description                                            |
+| ------ | ------------------------------------- | ------------- | ------------------ | --------------------------------------------- | ------------------------------------------------------ |
+| POST   | `/api/v1/devices`                     | Yes           | `admin`            | Body: `device_id`, `name`, `location`         | Register a Raspberry Pi and receive a one-time secret. |
+| GET    | `/api/v1/devices`                     | Yes           | `admin`, `teacher` | None                                          | List all registered devices.                           |
+| PUT    | `/api/v1/devices/{device_id}/enabled` | Yes           | `admin`            | Path: `device_id`; query/body flag: `enabled` | Enable or disable a device.                            |
 
 ### Role summary
 
