@@ -449,3 +449,51 @@
   flex-wrap: wrap;
   margin-bottom: 0;
 }
+
+/* Export buttons */
+.export-menu {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+
+.export-menu button {
+  padding: 8px 16px;
+  border: 1px solid #CB2957;
+  border-radius: 6px;
+  background-color: #EEEEEE;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.export-menu button:hover {
+  background-color: #CB2957;
+  color: #FFFFFF;
+}
+
+
+.export-menu button:active {
+  transform: scale(0.97);
+}
+
+.report-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 30px;
+}
+
+
+@media(max-width: 900px) {
+
+    .report-charts {
+        grid-template-columns: 1fr;
+    }
+
+}

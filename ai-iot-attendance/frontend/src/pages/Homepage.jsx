@@ -5,16 +5,22 @@ import { useAuth } from "../context/AuthContext";
 
 function Homepage() {
     const navigate = useNavigate();
-    const { user, login, register, logout } = useAuth();
+    const { user, login, studentLogin, register, logout } = useAuth();
 
     const [showLogin, setShowLogin] = useState(false);
+    const [showStudentLogin, setShowStudentLogin] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
 
     const [showLoginPassword, setShowLoginPassword] = useState(false);
+    const [showStudentLoginPassword, setShowStudentLoginPassword] = useState(false);
     const [showSignupPassword, setShowSignupPassword] = useState(false);
-
     const [loginData, setLoginData] = useState({
         email: "",
+        password: ""
+    });
+
+    const [studentLoginData, setStudentLoginData] = useState({
+        student_id: "",
         password: ""
     });
 
@@ -27,12 +33,14 @@ function Homepage() {
     });
 
     const [loginMessage, setLoginMessage] = useState("");
+    const [studentLoginMessage, setStudentLoginMessage] = useState("");
     const [signupMessage, setSignupMessage] = useState("");
     const [authBusy, setAuthBusy] = useState(false);
 
     // Open Login popup
     const openLogin = () => {
         setShowLogin(true);
+        setShowStudentLogin(false);
         setShowSignup(false);
         setLoginMessage("");
     };
@@ -41,23 +49,61 @@ function Homepage() {
     const openSignup = () => {
         setShowSignup(true);
         setShowLogin(false);
+        setShowStudentLogin(false);
         setSignupMessage("");
     };
-
     // Close both popups
     const closePopups = () => {
         setShowLogin(false);
+        setShowStudentLogin(false);
         setShowSignup(false);
         setLoginMessage("");
+        setStudentLoginMessage("");
         setSignupMessage("");
     };
-
     // Login input handling
     const handleLoginChange = (e) => {
         setLoginData({
             ...loginData,
             [e.target.name]: e.target.value
         });
+    };
+
+    // Student login input handling
+    const handleStudentLoginChange = (e) => {
+        setStudentLoginData({
+            ...studentLoginData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleStudentLogin = async (e) => {
+        e.preventDefault();
+
+        if (!studentLoginData.student_id || !studentLoginData.password) {
+            setStudentLoginMessage("Please enter your student ID and password.");
+            return;
+        }
+
+        setAuthBusy(true);
+        setStudentLoginMessage("");
+
+        try {
+            await studentLogin(
+                studentLoginData.student_id,
+                studentLoginData.password
+            );
+
+            navigate("/student/dashboard");
+
+        } catch (error) {
+            setStudentLoginMessage(
+                error.message || "Invalid student ID or password."
+            );
+
+        } finally {
+            setAuthBusy(false);
+        }
     };
 
     // Signup input handling
@@ -151,6 +197,20 @@ function Homepage() {
                             >
                                 Login
                             </button>
+
+
+                            <button
+                                className="login-btn"
+                                onClick={() => {
+                                    setShowStudentLogin(true);
+                                    setShowLogin(false);
+                                    setShowSignup(false);
+                                    setStudentLoginMessage("");
+                                }}
+                            >
+                                Student Login
+                            </button>
+
 
                             <button
                                 className="signup-btn"
@@ -281,6 +341,151 @@ function Homepage() {
 
                     </div>
                 </div>
+            )}
+
+
+            {/* ================= STUDENT LOGIN MODAL ================= */}
+
+            {showStudentLogin && (
+
+                <div
+                    className="auth-overlay"
+                    onClick={closePopups}
+                >
+
+                    <div
+                        className="auth-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
+                        <button
+                            className="modal-close"
+                            onClick={closePopups}
+                        >
+                            ×
+                        </button>
+
+
+                        <h2>Student Login</h2>
+
+
+                        <p className="auth-subtitle">
+                            Login using your student ID
+                        </p>
+
+
+                        <form onSubmit={handleStudentLogin}>
+
+
+                            <div className="form-group">
+
+                                <label>
+                                    Student ID
+                                </label>
+
+
+                                <input
+                                    type="text"
+                                    name="student_id"
+                                    placeholder="Enter your student ID"
+                                    value={studentLoginData.student_id}
+                                    onChange={handleStudentLoginChange}
+                                />
+
+                            </div>
+
+
+
+                            <div className="form-group">
+
+                                <label>
+                                    Password
+                                </label>
+
+
+                                <div className="password-wrapper">
+
+                                    <input
+                                        type={
+                                            showStudentLoginPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        name="password"
+                                        placeholder="Enter your password"
+                                        value={studentLoginData.password}
+                                        onChange={handleStudentLoginChange}
+                                    />
+
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setShowStudentLoginPassword(
+                                                !showStudentLoginPassword
+                                            )
+                                        }
+                                    >
+                                        {
+                                            showStudentLoginPassword
+                                                ? "◉"
+                                                : "◌"
+                                        }
+                                    </button>
+
+
+                                </div>
+
+                            </div>
+
+
+
+                            {studentLoginMessage && (
+
+                                <p className="auth-message error">
+                                    {studentLoginMessage}
+                                </p>
+
+                            )}
+
+
+
+                            <button
+                                type="submit"
+                                className="auth-submit-btn"
+                                disabled={authBusy}
+                            >
+
+                                {
+                                    authBusy
+                                        ? "Logging in..."
+                                        : "Login"
+                                }
+
+                            </button>
+
+
+                        </form>
+
+
+                        <p className="switch-auth">
+
+                            Teacher/Admin?{" "}
+
+                            <button
+                                onClick={openLogin}
+                            >
+                                Login here
+                            </button>
+
+                        </p>
+
+
+                    </div>
+
+                </div>
+
             )}
 
 
@@ -420,11 +625,10 @@ function Homepage() {
 
                             {signupMessage && (
                                 <p
-                                    className={`auth-message ${
-                                        signupMessage.includes("successfully")
-                                            ? "success"
-                                            : "error"
-                                    }`}
+                                    className={`auth-message ${signupMessage.includes("successfully")
+                                        ? "success"
+                                        : "error"
+                                        }`}
                                 >
                                     {signupMessage}
                                 </p>

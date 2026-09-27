@@ -1,17 +1,22 @@
 import "./Reports.css";
 import { useEffect, useMemo, useState } from "react";
 import { listCourses } from "../api/courses";
-import { getDailyReport, getWeeklyReport, getMonthlyReport, getStudentReport } from "../api/reports";
+import {
+  getDailyReport,
+  getWeeklyReport,
+  getMonthlyReport,
+  getStudentReport,
+  downloadExport,
+} from "../api/reports";
 import Loader from "../components/Loader";
+import AttendanceBarChart from "../components/AttendanceBarChart";
+import AttendancePieChart from "../components/AttendancePieChart";
 
 
 
 function Reports() {
   const [courses, setCourses] = useState([]);
   const [reports, setReports] = useState([]);
-  //const [students, setStudents] = useState([]);
-  //const [studentSearch, setStudentSearch] = useState("");
-  //const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentId, setStudentId] = useState("");
   const [studentReport, setStudentReport] = useState([]);
   const [studentMessage, setStudentMessage] = useState("");
@@ -23,6 +28,8 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [studentReportLoading, setStudentReportLoading] = useState(false);
+
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
 
   const today = new Date().toISOString().split("T")[0];
@@ -192,6 +199,180 @@ function Reports() {
       : 0;
 
 
+  async function handleExport(format) {
+
+    try {
+
+      const filters = {
+        start_date: today,
+        end_date: today,
+      };
+
+
+      if (courseFilter !== "all") {
+        filters.course_id = courseFilter;
+      }
+
+
+      await downloadExport(filters, format);
+
+
+      setShowExportMenu(false);
+
+
+    } catch (error) {
+
+      setMessage(
+        error.message || "Export failed."
+      );
+
+    }
+
+  }
+
+
+
+  const exportSummaryCSV = () => {
+    if (!reports || reports.length === 0) {
+      setMessage("No report data available to export.");
+      return;
+    }
+
+    const headers = [
+      "Date",
+      "Course",
+      "Total Students",
+      "Present",
+      "Late",
+      "Absent",
+      "Rate",
+    ];
+
+    const rows = reports.map((report) => [
+      report.date || "-",
+      report.course_name || "-",
+      report.total_students ?? 0,
+      report.present ?? 0,
+      report.late ?? 0,
+      report.absent ?? 0,
+      `${report.percentage ?? 0}%`,
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row
+          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
+
+
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
+
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "attendance_summary_report.csv";
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
+
+  const exportSummaryPDF = () => {
+
+    if (!reports || reports.length === 0) {
+      setMessage("No report data available to export.");
+      return;
+    }
+
+
+    const printWindow = window.open("", "_blank");
+
+
+    const rows = reports.map((report) => `
+    <tr>
+      <td>${report.date || "-"}</td>
+      <td>${report.course_name || "-"}</td>
+      <td>${report.total_students ?? 0}</td>
+      <td>${report.present ?? 0}</td>
+      <td>${report.late ?? 0}</td>
+      <td>${report.absent ?? 0}</td>
+      <td>${report.percentage ?? 0}%</td>
+    </tr>
+  `).join("");
+
+
+    printWindow.document.write(`
+    <html>
+      <head>
+        <title>Attendance Summary Report</title>
+        <style>
+          table {
+            width:100%;
+            border-collapse:collapse;
+          }
+
+          th,td {
+            border:1px solid black;
+            padding:8px;
+          }
+
+          th {
+            background:#CB2957;
+            color:white;
+          }
+        </style>
+      </head>
+
+      <body>
+
+        <h2>Attendance Summary Report</h2>
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Course</th>
+              <th>Total Students</th>
+              <th>Present</th>
+              <th>Late</th>
+              <th>Absent</th>
+              <th>Rate</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${rows}
+          </tbody>
+
+        </table>
+
+      </body>
+    </html>
+  `);
+
+
+    printWindow.document.close();
+
+    printWindow.print();
+
+  };
+
+
 
   return (
     <div className="reports-page">
@@ -270,6 +451,49 @@ function Reports() {
           >
             ↻ Refresh
           </button>
+
+          <div className="export-wrapper">
+
+            <button
+              className="reports-reset-button"
+              onClick={() =>
+                setShowExportMenu(!showExportMenu)
+              }
+            >
+              Export Report
+            </button>
+
+
+            {showExportMenu && (
+
+              <div className="export-menu">
+
+                <button
+                  onClick={() => handleExport("csv")}
+                >
+                  CSV
+                </button>
+
+                <button onClick={exportSummaryCSV}>
+                  Summary CSV
+                </button>
+
+
+                <button
+                  onClick={() => handleExport("pdf")}
+                >
+                  PDF
+                </button>
+
+                <button onClick={exportSummaryPDF}>
+                  Summary PDF
+                </button>
+
+              </div>
+
+            )}
+
+          </div>
 
         </div>
 
@@ -375,7 +599,6 @@ function Reports() {
 
 
       </div>
-
 
 
 
@@ -492,6 +715,18 @@ function Reports() {
       </div>
 
 
+
+      <div className="report-charts">
+
+        <AttendanceBarChart
+          reports={reports}
+        />
+
+        <AttendancePieChart
+          reports={reports}
+        />
+
+      </div>
       <div className="student-search-section">
 
         <h2>
@@ -624,7 +859,11 @@ function Reports() {
 
 
     </div>
+
+
+
   );
+
 }
 
 

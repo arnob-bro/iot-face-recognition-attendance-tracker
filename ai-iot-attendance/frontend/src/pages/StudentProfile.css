@@ -1,0 +1,145 @@
+.student-profile-page {
+    padding: 32px;
+    background: #EEEEEE;
+    min-height: calc(100vh - 70px);
+    color: #000000;
+}
+
+
+.student-profile-page h1 {
+    margin-bottom: 24px;
+    font-size: 32px;
+    color: #000000;
+}
+
+
+.student-profile-message {
+    color: #CB2957;
+    margin-bottom: 20px;
+}
+
+
+
+/* Profile Card */
+
+.student-profile-card {
+    background: #FFFFFF;
+    border: 1px solid #DDDDDD;
+    border-radius: 12px;
+    width: 25rem;
+    max-width: 600px;
+}
+
+
+.student-profile-card h2 {
+    margin-bottom: 20px;
+    color: #CB2957;
+}
+
+
+.student-profile-card p {
+    margin: 12px 0;
+    color: #000000;
+}
+
+
+
+
+/* Password Section */
+
+.student-password-card {
+    background: #FFFFFF;
+    border: 1px solid #DDDDDD;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    width: 20rem;
+}
+
+
+.student-password-card h2 {
+    margin-bottom: 20px;
+    color: #CB2957;
+}
+
+
+.student-password-form-group {
+    margin-bottom: 18px;
+}
+
+
+.student-password-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #000000;
+    font-weight: 500;
+}
+
+
+.student-password-form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #DDDDDD;
+    border-radius: 8px;
+    background: #EEEEEE;
+    color: #000000;
+    box-sizing: border-box;
+}
+
+
+.student-password-form-group input:focus {
+    outline: none;
+    border-color: #CB2957;
+}
+
+
+
+/* Button */
+
+.student-password-button {
+    margin-top: 10px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #CB2957;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+
+.student-password-button:hover {
+    background: #000000;
+}
+
+
+.student-password-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+
+
+/* Password status */
+
+.student-password-message {
+    margin-top: 15px;
+    color: #CB2957;
+}
+
+
+
+/* Loading */
+
+.student-profile-loading {
+    padding: 40px;
+    background: #EEEEEE;
+    color: #000000;
+}
+
+.student-card {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+
+}

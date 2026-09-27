@@ -2,6 +2,9 @@
  * Attendance API service
  *
  * FastAPI endpoints:
+ *   POST /api/v1/attendance/sessions                    → SessionResponse (teacher/admin)
+ *   PUT  /api/v1/attendance/sessions/{id}               → SessionResponse
+ *   GET  /api/v1/attendance/sessions                    → [SessionResponse]
  *   GET  /api/v1/attendance/sessions/{id}               → SessionDetailResponse
  *   GET  /api/v1/attendance/sessions/active             → SessionResponse | null
  *   POST /api/v1/attendance/sessions/{id}/record        → AttendanceRecordResponse
@@ -19,6 +22,37 @@
  */
 
 import { apiRequest } from "./client";
+
+/**
+ * Start a new attendance session for a course.
+ * @param {{
+ *   course_id: string,
+ *   late_threshold_minutes?: number,
+ *   device_id: string
+ * }} data
+ */
+export async function startSession(data) {
+  return apiRequest("/api/v1/attendance/sessions", {
+    method: "POST",
+    body: {
+      course_id: data.course_id,
+      late_threshold_minutes: data.late_threshold_minutes ?? 15,
+      device_id: data.device_id,
+    },
+  });
+}
+
+/**
+ * End or cancel an active session.
+ * @param {string} sessionId
+ * @param {"completed" | "cancelled"} status
+ */
+export async function endSession(sessionId, status = "completed") {
+  return apiRequest(`/api/v1/attendance/sessions/${sessionId}`, {
+    method: "PUT",
+    body: { status },
+  });
+}
 
 /**
  * Get a session's full details including attendance records.
@@ -52,3 +86,17 @@ export async function recordAttendance(sessionId, data) {
     },
   });
 }
+
+/**
+ * List attendance sessions with optional filters.
+ * @param {{ course_id?: string, status?: string, limit?: number }} filters
+ */
+export async function listSessions(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.course_id) params.set("course_id", filters.course_id);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.limit) params.set("limit", filters.limit);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest(`/api/v1/attendance/sessions${qs}`);
+}
+

@@ -1,7 +1,7 @@
 .dashboard {
   min-height: 100vh;
   padding: 32px;
-  background: #eeeeee;
+  background: #EEEEEE;
   color: #1e293b;
   box-sizing: border-box;
 }
@@ -47,6 +47,13 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-date :hover{
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .dashboard-date span {
@@ -74,12 +81,10 @@
   gap: 16px;
   padding: 22px;
   background: #ffffff;
-  border: 2px solid #dddddd;
+  border: 2px solid #DDDDDD;
   border-radius: 14px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -107,8 +112,9 @@
   align-items: center;
 }
 
+
 .students-icon {
-  background: #eeeeee;
+  background: #EEEEEE;
   color: #6bb441;
 }
 
@@ -165,10 +171,16 @@
 .attendance-card,
 .activity-card {
   background: #ffffff;
-  border: 1px solid #e8ebf0;
-  border-radius: 14px;
   padding: 24px;
+  border: 2px solid #DDDDDD;
+  border-radius: 14px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attendance-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .card-header {
@@ -193,8 +205,8 @@
   padding: 9px 14px;
   border: 0;
   border-radius: 8px;
-  background: #cb2957;
-  color: #eeeeee;
+  background: #CB2957;
+  color: #EEEEEE;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -231,7 +243,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: conic-gradient(#6366f1 0% 80%, #e5e7eb 80% 100%);
+  background: conic-gradient(#6366f1 0% 80%,
+      #e5e7eb 80% 100%);
   flex-shrink: 0;
 }
 
@@ -260,8 +273,14 @@
 .attendance-details {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  font-size: 15px;
+  color: #CB2957;
+  padding-top: 15px;
+  font-family: sans-serif;
+  font-weight: 600;
+
 }
+
 
 .attendance-item {
   display: flex;
@@ -408,7 +427,7 @@
   justify-content: center;
   padding: 10px 16px;
   border-radius: 8px;
-  background: #cb2957;
+  background: #CB2957;
   color: #ffffff;
   text-decoration: none;
   font-size: 13px;
@@ -421,6 +440,9 @@
   transform: translateY(-1px);
 }
 
+
+
+
 /* Responsive */
 
 @media (max-width: 1100px) {
@@ -431,6 +453,20 @@
   .dashboard-content {
     grid-template-columns: 1fr;
   }
+}
+
+.session-form {
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 0.7fr 0.7fr auto;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.session-form input {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
 }
 
 @media (max-width: 700px) {

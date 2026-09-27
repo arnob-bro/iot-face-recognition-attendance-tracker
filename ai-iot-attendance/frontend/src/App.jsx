@@ -11,6 +11,11 @@ import Devices from "./pages/Devices";
 import Teachers from "./pages/Teachers";
 import AdminRoute from "./components/AdminRoute";
 import Courses from "./pages/Courses";
+import StudentDashboard from "./pages/StudentDashboard";
+import StudentProfile from "./pages/StudentProfile";
+import StudentAttendance from "./pages/StudentAttendance";
+import Routines from "./pages/Routines";
+
 
 
 function ProtectedLayout({ children }) {
@@ -37,6 +42,40 @@ function App() {
             <ProtectedRoute>
               <ProtectedLayout>
                 <Dashboard />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <StudentDashboard />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/profile"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <StudentProfile />
+              </ProtectedLayout>
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/student/attendance"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <StudentAttendance />
               </ProtectedLayout>
             </ProtectedRoute>
           }
@@ -109,6 +148,17 @@ function App() {
                 <Teachers />
               </ProtectedLayout>
             </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/routines"
+          element={
+            <ProtectedRoute>
+              <ProtectedLayout>
+                <Routines />
+              </ProtectedLayout>
+            </ProtectedRoute>
           }
         />
 

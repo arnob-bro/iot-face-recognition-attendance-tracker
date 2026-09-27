@@ -238,7 +238,7 @@ async def record_attendance(
 
 async def bulk_sync_records(
     session_id: str, records: list[AttendanceRecordCreate], device_id: str | None = None
-) -> list[AttendanceRecordResponse]:
+) -> list[dict]:
     """
     Bulk sync attendance records from RPi offline queue.
 
@@ -321,6 +321,7 @@ async def get_student_attendance(
     course_id: str | None = None,
 ) -> list[AttendanceRecordResponse]:
     """Get all attendance records for a student, optionally filtered by course."""
+
     db = get_db()
 
     query = db.collection(RECORDS_COLLECTION).where(
@@ -328,29 +329,60 @@ async def get_student_attendance(
     )
 
     record_docs = query.get()
+
     records = []
 
     for rdoc in record_docs:
         rdata = rdoc.to_dict()
 
-        # If filtering by course, check the session's course_id
-        if course_id:
-            session_doc = (
-                db.collection(SESSIONS_COLLECTION)
-                .document(rdata["session_id"])
-                .get()
-            )
-            if session_doc.exists:
-                sdata = session_doc.to_dict()
-                if sdata.get("course_id") != course_id:
-                    continue
+        course_name = None
 
-        records.append(
-            AttendanceRecordResponse(record_id=rdoc.id, **rdata)
+        # Get session details
+        session_doc = (
+            db.collection(SESSIONS_COLLECTION)
+            .document(rdata["session_id"])
+            .get()
         )
 
-    return records
+        if session_doc.exists:
+            sdata = session_doc.to_dict()
 
+            session_course_id = sdata.get("course_id")
+
+            # Filter by course if requested
+            if course_id and session_course_id != course_id:
+                continue
+
+            # Get course name
+            if session_course_id:
+                course_doc = (
+                    db.collection(COURSES_COLLECTION)
+                    .document(session_course_id)
+                    .get()
+                )
+
+            if course_doc.exists:
+                course_data = course_doc.to_dict()
+
+                course_name = (
+                    course_data.get("course_name")
+                    or course_data.get("name")
+                    or session_course_id
+                )
+
+        rdata["course_name"] = course_name
+
+        record = AttendanceRecordResponse(
+            record_id=rdoc.id,
+            **rdata
+        )
+
+        record_dict = record.model_dump()
+        record_dict["course_name"] = course_name
+
+        records.append(record_dict)
+
+        return records
 
 async def _ensure_session_slot_available(
     db,

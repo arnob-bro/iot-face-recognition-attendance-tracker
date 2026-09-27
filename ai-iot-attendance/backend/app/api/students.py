@@ -100,7 +100,7 @@ async def delete_student(student_id: str):
 
 @router.get(
     "/{student_id}/attendance",
-    response_model=list[AttendanceRecordResponse],
+    response_model=list[dict],
 )
 async def get_student_attendance(
     student_id: str,
@@ -108,7 +108,13 @@ async def get_student_attendance(
     current_user: UserInToken = Depends(get_current_user),
 ):
     """Get a student's attendance history, optionally filtered by course."""
-    if current_user.role not in ("admin", "teacher") and (current_user.role != "student" or current_user.student_id != student_id):
+    if (
+    current_user.role not in ("admin", "teacher")
+    and (
+        current_user.role != "student"
+        or (current_user.student_id or current_user.user_id) != student_id
+    )
+):
         raise HTTPException(status_code=403, detail="You can only access your own attendance record.")
     return await attendance_service.get_student_attendance(
         student_id, course_id=course_id

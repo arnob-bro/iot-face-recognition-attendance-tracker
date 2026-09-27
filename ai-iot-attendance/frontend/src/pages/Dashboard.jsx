@@ -1,14 +1,17 @@
 import "./Dashboard.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getDashboardStats } from "../api/reports";
 import { listCourses } from "../api/courses";
+
 import { getActiveSession } from "../api/attendance";
 import Loader from "../components/Loader";
 
 function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [stats, setStats] = useState({
     total_students: 0,
     total_courses: 0,
@@ -24,6 +27,7 @@ function Dashboard() {
   const [activeSession, setActiveSession] = useState(null);
 
   const [message, setMessage] = useState("");
+
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -35,9 +39,12 @@ function Dashboard() {
         getActiveSession().catch(() => null),
       ]);
 
+
       if (statsData) setStats(statsData);
       if (coursesData?.courses) setCourses(coursesData.courses);
+
       setActiveSession(activeData);
+
     } catch (error) {
       setMessage(error.message || "Failed to load dashboard data.");
     } finally {
@@ -49,14 +56,16 @@ function Dashboard() {
     loadData();
   }, []);
 
+
+
   return (
     <div className="dashboard">
+
       <div className="dashboard-header">
         <div className="dashboard-title">
           <h1>Dashboard</h1>
           <p className="dashboard-description">
-            Welcome back, {user?.name || "Teacher"}. Powered by FastAPI &
-            Firebase.
+            Welcome back, {user?.name || "Teacher"}. Powered by FastAPI & Firebase.
           </p>
         </div>
 
@@ -110,71 +119,92 @@ function Dashboard() {
             <p>Today's Present</p>
             <h2>{stats.today_present}</h2>
             <span className="stat-positive">
-              {stats.today_percentage
-                ? `${stats.today_percentage.toFixed(0)}% Rate`
-                : "0% Rate"}
+              {stats.today_percentage ? `${stats.today_percentage.toFixed(0)}% Rate` : "0% Rate"}
             </span>
           </div>
         </div>
       </div>
 
       <div className="dashboard-content">
+
         {loading ? (
           <Loader />
         ) : (
           <div className="attendance-card">
+
             <div className="card-header">
               <div>
-                <h2>Routine-managed Attendance</h2>
+                <h2>Attendance Session Status</h2>
                 <p>
-                  Attendance sessions open and close according to configured
-                  class routines.
+                  Sessions are created automatically according to configured routines.
                 </p>
               </div>
             </div>
 
+
             {activeSession ? (
+
               <div className="attendance-details">
+
                 <p>
-                  Live session running for course:{" "}
+                  Live session running for course:
+                  {" "}
                   <strong>
-                    {courses.find(
-                      (c) => c.course_id === activeSession.course_id,
-                    )?.course_name || activeSession.course_id}
-                  </strong>{" "}
-                  (Late threshold: {activeSession.late_threshold_minutes}m)
+                    {
+                      courses.find(
+                        (c) =>
+                          c.course_id === activeSession.course_id
+                      )?.course_name ||
+                      activeSession.course_id
+                    }
+                  </strong>
                 </p>
-                <Link to="/attendance" className="view-button">
+
+
+                <button
+                  className="view-button"
+                  type="button"
+                  onClick={() => navigate("/attendance")}
+                >
                   Open Live Camera Console
-                </Link>
+                </button>
+
+
               </div>
+
             ) : (
-              <p className="dashboard-description">
-                No session is active. The scheduler will open one during the
-                next active routine window.
-              </p>
+
+              <div className="attendance-details">
+
+                <p>
+                  No active session currently running.
+                </p>
+
+                <p>
+                  The scheduler will create sessions automatically based on routines.
+                </p>
+
+              </div>
+
             )}
 
+
             {message && (
-              <p
-                className="dashboard-description"
-                style={{
-                  marginTop: "12px",
-                  fontWeight: 600,
-                  color:
-                    message.includes("success") || message.includes("started")
-                      ? "#15803d"
-                      : "#CB2957",
-                }}
-              >
+              <p className="dashboard-description">
                 {message}
               </p>
             )}
+
+
           </div>
         )}
+
       </div>
+
+
     </div>
   );
 }
 
 export default Dashboard;
+

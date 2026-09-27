@@ -364,6 +364,10 @@ async def get_report_csv_data(
     for rdoc in record_docs:
         rdata = rdoc.to_dict()
         session_id = rdata.get("session_id", "")
+        
+        # Skip records without a linked session
+        if not session_id:
+            continue
 
         # Get session data for course and date filtering
         session_doc = db.collection(SESSIONS_COLLECTION).document(session_id).get()

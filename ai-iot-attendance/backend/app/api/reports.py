@@ -3,6 +3,10 @@ Report routes — daily, weekly, monthly, course-wise, and student-wise reports.
 """
 
 from fastapi import APIRouter, Depends, Query, Response
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib import colors
 import csv
 import io
 
@@ -99,7 +103,8 @@ async def get_student_report(
 
 
 @router.get("/export")
-async def export_csv(
+async def export_report(
+    format: str = Query("csv"),
     course_id: str | None = Query(None),
     student_id: str | None = Query(None),
     start_date: str | None = Query(None),
@@ -117,6 +122,76 @@ async def export_csv(
         start_date=start_date,
         end_date=end_date,
     )
+    
+    if format == "pdf":
+
+        buffer = io.BytesIO()
+
+        pdf = SimpleDocTemplate(buffer,pagesize=landscape(A4))
+
+        styles = getSampleStyleSheet()
+
+        elements = []
+
+        elements.append(
+            Paragraph(
+                "Attendance Report",
+                styles["Heading2"]
+            )
+        )
+
+        elements.append(
+            Spacer(1, 12)
+        )
+
+
+        if rows:
+
+            data = [
+                list(rows[0].keys())
+            ]
+
+            for row in rows:
+                data.append(
+                    list(row.values())
+                )
+
+        else:
+
+            data = [
+                ["No data found"]
+            ]
+
+
+        table = Table(data,repeatRows=1)
+
+        table.setStyle(
+            TableStyle([
+                ("GRID", (0,0), (-1,-1), 0.5, colors.black),
+                ("FONTSIZE", (0,0), (-1,-1), 7),
+                ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                ("ALIGN", (0,0), (-1,0), "CENTER"),
+            ])
+        )
+
+
+        elements.append(table)
+
+        pdf.build(elements)
+
+        pdf_bytes = buffer.getvalue()
+
+        buffer.close()
+
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition":
+                "attachment; filename=attendance_report.pdf"
+            },
+        )
 
     # Build CSV in memory
     output = io.StringIO()

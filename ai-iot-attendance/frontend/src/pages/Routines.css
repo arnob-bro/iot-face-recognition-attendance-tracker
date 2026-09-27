@@ -1,0 +1,190 @@
+.routine-page {
+  padding: 32px;
+  background: #EEEEEE;
+  min-height: calc(100vh - 70px);
+  color: #000000;
+}
+
+
+.routine-page h1 {
+  font-size: 32px;
+  margin-bottom: 28px;
+}
+
+
+.routine-page h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  color: #CB2957;
+}
+
+
+
+/* Create routine section */
+
+.routine-form-section {
+  background: #FFFFFF;
+  padding: 28px;
+  border-radius: 14px;
+  border: 1px solid #DDDDDD;
+  margin-bottom: 32px;
+}
+
+
+.routine-form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+
+.routine-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+
+.routine-form input,
+.routine-form select {
+  padding: 10px 12px;
+  border: 1px solid #DDDDDD;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #EEEEEE;
+}
+
+
+.routine-form input:focus,
+.routine-form select:focus {
+  outline: none;
+  border-color: #CB2957;
+}
+
+
+
+/* Checkbox */
+
+.routine-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+}
+
+
+.routine-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+
+
+/* Button */
+
+.routine-form button,
+.routine-card button {
+  background: #CB2957;
+  color: white;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+
+.routine-form button:hover,
+.routine-card button:hover {
+  opacity: 0.9;
+}
+
+
+
+/* Existing routines */
+
+.routine-list-section {
+  background: #FFFFFF;
+  padding: 28px;
+  border-radius: 14px;
+  border: 1px solid #DDDDDD;
+}
+
+
+.routine-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+
+.routine-card {
+  background: #EEEEEE;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #DDDDDD;
+}
+
+
+.routine-card p {
+  margin: 8px 0;
+}
+
+
+.routine-card button {
+  margin-top: 12px;
+}
+
+
+
+.routine-message {
+  color: #CB2957;
+  font-weight: 600;
+}
+
+
+.routine-loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 18px;
+}
+
+
+
+/* Responsive */
+
+@media (max-width: 1000px) {
+
+  .routine-form {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+
+  .routine-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+
+@media (max-width: 650px) {
+
+  .routine-page {
+    padding: 16px;
+  }
+
+
+  .routine-form,
+  .routine-list {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+.routine-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}

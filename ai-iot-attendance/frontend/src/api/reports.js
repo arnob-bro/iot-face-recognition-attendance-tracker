@@ -21,7 +21,7 @@
  *   { student_id, name, total_classes, present, absent, late, percentage }
  */
 
-import { apiRequest } from "./client";
+import { apiRequest, getToken, } from "./client";
 
 /**
  * Get aggregated dashboard statistics.
@@ -85,12 +85,160 @@ export async function getStudentReport(studentId) {
  * @param {{ course_id?: string, student_id?: string, start_date?: string, end_date?: string }} filters
  * @returns {string} Full URL for downloading the CSV
  */
-export function getExportUrl(filters = {}) {
+export function getExportUrl(filters = {}, format = "csv") {
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const params = new URLSearchParams();
   if (filters.course_id) params.set("course_id", filters.course_id);
   if (filters.student_id) params.set("student_id", filters.student_id);
   if (filters.start_date) params.set("start_date", filters.start_date);
   if (filters.end_date) params.set("end_date", filters.end_date);
+  params.set("format", format);
+
   return `${API_BASE}/api/v1/reports/export?${params.toString()}`;
+}
+
+
+export async function exportReport(filters = {}) {
+
+  const API_BASE =
+    import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+
+  const params = new URLSearchParams();
+
+
+  if (filters.course_id) {
+    params.set("course_id", filters.course_id);
+  }
+
+  if (filters.student_id) {
+    params.set("student_id", filters.student_id);
+  }
+
+  if (filters.start_date) {
+    params.set("start_date", filters.start_date);
+  }
+
+  if (filters.end_date) {
+    params.set("end_date", filters.end_date);
+  }
+
+
+  const token = getToken();
+
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/reports/export?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+
+  if (!response.ok) {
+
+    throw new Error(
+      "Failed to export report."
+    );
+
+  }
+
+
+  const blob = await response.blob();
+
+
+  const url = window.URL.createObjectURL(blob);
+
+
+  const link = document.createElement("a");
+
+  link.href = url;
+
+  link.download = "attendance_report.csv";
+
+  document.body.appendChild(link);
+
+  link.click();
+
+
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+
+}
+
+export async function downloadExport(filters = {}, format = "csv") {
+
+  const API_BASE =
+    import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+
+  const params = new URLSearchParams();
+
+
+  if (filters.course_id) {
+    params.set("course_id", filters.course_id);
+  }
+
+
+  if (filters.start_date) {
+    params.set("start_date", filters.start_date);
+  }
+
+
+  if (filters.end_date) {
+    params.set("end_date", filters.end_date);
+  }
+
+
+  params.set("format", format);
+
+
+  const token = localStorage.getItem("auth_token");
+
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/reports/export?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+
+  if (!response.ok) {
+    throw new Error("Export failed.");
+  }
+
+
+  const blob = await response.blob();
+
+
+  const url = window.URL.createObjectURL(blob);
+
+
+  const link = document.createElement("a");
+
+  link.href = url;
+
+
+  if (format === "pdf") {
+    link.download = "attendance_report.pdf";
+  } else {
+    link.download = "attendance_report.csv";
+  }
+
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  link.remove();
+
+
+  window.URL.revokeObjectURL(url);
 }

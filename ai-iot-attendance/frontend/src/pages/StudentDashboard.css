@@ -1,0 +1,93 @@
+.student-dashboard {
+  padding: 32px;
+  background: #EEEEEE;
+  min-height: calc(100vh - 70px);
+  color: #000000;
+}
+
+
+.student-dashboard h1 {
+  margin-bottom: 24px;
+  font-size: 32px;
+  color: #000000;
+}
+
+
+.student-message {
+  color: #CB2957;
+  margin-bottom: 20px;
+}
+
+
+/* Profile Card */
+
+.student-profile-card {
+  background: #FFFFFF;
+  border: 1px solid #DDDDDD;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 650px;
+  margin-bottom: 32px;
+}
+
+
+.student-profile-card h2 {
+  margin-bottom: 20px;
+  color: #CB2957;
+}
+
+
+.student-profile-card p {
+  margin: 10px 0;
+  color: #000000;
+}
+
+
+
+
+/* Attendance Section */
+
+.student-attendance-section h2 {
+  margin-bottom: 18px;
+  color: #CB2957;
+}
+
+
+
+.student-attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+
+.student-attendance-table th {
+  background: #000000;
+  color: #FFFFFF;
+  padding: 14px;
+  text-align: left;
+}
+
+
+.student-attendance-table td {
+  padding: 14px;
+  border-bottom: 1px solid #DDDDDD;
+  color: #000000;
+}
+
+
+.student-attendance-table tr:hover {
+  background: #EEEEEE;
+}
+
+
+
+.student-empty {
+  background: #FFFFFF;
+  border: 1px solid #DDDDDD;
+  padding: 20px;
+  border-radius: 10px;
+  color: #000000;
+}

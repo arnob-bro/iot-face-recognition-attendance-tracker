@@ -53,6 +53,63 @@ async def login_student(student_id: str, password: str) -> dict:
     }
 
 
+async def change_password(
+    student_id: str,
+    data: StudentPasswordChange
+) -> dict:
+    """Change password for an authenticated student."""
+
+    db = get_db()
+
+    doc_ref = db.collection(STUDENTS_COLLECTION).document(student_id)
+
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        raise NotFoundError("Student", student_id)
+
+
+    student_data = doc.to_dict()
+
+
+    if not student_data.get("password_hash"):
+        raise AuthenticationError(
+            "This student account has no password set."
+        )
+
+
+    if not verify_password(
+        data.current_password,
+        student_data["password_hash"]
+    ):
+        raise AuthenticationError(
+            "Current password is incorrect."
+        )
+
+
+    new_password_hash = hash_password(
+        data.new_password
+    )
+
+
+    doc_ref.update({
+        "password_hash": new_password_hash,
+        "must_change_password": False,
+    })
+
+
+    logger.info(
+        f"Student {student_id} changed password."
+    )
+
+
+    return {
+        "message": "Password changed successfully."
+    }
+
+
+
+
 async def create_student(data: StudentCreate) -> StudentResponse:
     """Create a new student. Uses student_id as the document ID."""
     db = get_db()
@@ -111,15 +168,15 @@ async def get_student(student_id: str) -> StudentResponse:
         raise NotFoundError("Student", student_id)
 
     data = doc.to_dict()
+
     face_enrolled = _check_face_enrolled(db, student_id)
+
     data.pop("face_enrolled", None)
 
     return StudentResponse(
         **data,
         face_enrolled=face_enrolled,
-        must_change_password=data.get("must_change_password", False),
     )
-
 
 async def list_students(
     department: str | None = None,

@@ -1,22 +1,23 @@
 import "./Attendance.css";
-import { useEffect, useState, useRef } from "react";
-import {
-  getSession,
-  getActiveSession,
-  recordAttendance,
-} from "../api/attendance";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { getSession, getActiveSession, recordAttendance } from "../api/attendance";
 import { listCourses, getCourseStudents } from "../api/courses";
 import { recognizeFace } from "../api/faces";
 
+
 function Attendance() {
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const [selectedSessionData, setSelectedSessionData] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [courses, setCourses] = useState([]);
+
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [manualAttendance, setManualAttendance] = useState({});
 
+
   // Status & error messages
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   // --- AI Camera & Testing Console State ---
   const [testMode, setTestMode] = useState("camera"); // "camera" | "upload"
@@ -49,8 +50,10 @@ function Attendance() {
       }
 
       if (activeData) {
+        setSelectedSessionId(activeData.session_id);
         await loadSessionDetails(activeData.session_id);
       }
+
     } catch (err) {
       setMessage(err.message || "Failed to load attendance sessions.");
     }
@@ -77,26 +80,36 @@ function Attendance() {
     };
   }, []);
 
+  const handleSelectSession = async (id) => {
+    setSelectedSessionId(id);
+    await loadSessionDetails(id);
+  };
+
+
   const loadEnrolledStudents = async (courseId) => {
     if (!courseId) return;
 
     try {
       const data = await getCourseStudents(courseId);
       setEnrolledStudents(data);
-    } catch {
+    } catch (err) {
       setMessage("Failed to load enrolled students.");
     }
   };
+
 
   const handleManualAttendance = async (studentId) => {
     if (!activeSession) return;
 
     try {
-      const response = await recordAttendance(activeSession.session_id, {
-        student_id: studentId,
-        confidence: 0,
-        method: "manual",
-      });
+      const response = await recordAttendance(
+        activeSession.session_id,
+        {
+          student_id: studentId,
+          confidence: 0,
+          method: "manual",
+        }
+      );
 
       // Backend decides present/late
       setManualAttendance((prev) => ({
@@ -105,21 +118,22 @@ function Attendance() {
       }));
 
       await loadSessionDetails(activeSession.session_id);
+
     } catch (err) {
       setMessage(err.message || "Failed to mark attendance.");
     }
   };
+
+
+
+
 
   // --- Camera Operations ---
   const startCamera = async () => {
     setMessage("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: "user",
-        },
+        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -128,9 +142,7 @@ function Attendance() {
       }
       setCameraActive(true);
     } catch (err) {
-      setMessage(
-        `Camera error: ${err.message}. You can also use the 'Upload Image' tab.`,
-      );
+      setMessage(`Camera error: ${err.message}. You can also use the 'Upload Image' tab.`);
     }
   };
 
@@ -247,8 +259,8 @@ function Attendance() {
     records.filter((r) => r.status?.toLowerCase() === "absent").length;
 
   const activeCourseName =
-    courses.find((c) => c.course_id === activeSession?.course_id)
-      ?.course_name || activeSession?.course_id;
+    courses.find((c) => c.course_id === activeSession?.course_id)?.course_name ||
+    activeSession?.course_id;
 
   return (
     <div className="attendance-page">
@@ -258,10 +270,19 @@ function Attendance() {
           <p className="attendance-subtitle">Live AI Attendance</p>
           <h1>Attendance & Face Recognition</h1>
           <p className="attendance-description">
-            Test real-time face detection, anti-spoofing liveness, and automated
-            attendance logging.
+            Test real-time face detection, anti-spoofing liveness, and automated attendance logging.
           </p>
         </div>
+
+        <div className="attendance-session-status">
+          {activeSession && (
+            <span className="session-live-badge">
+              Live Session Running
+            </span>
+          )}
+        </div>
+
+
       </div>
 
       {/* Active Session Alert Banner */}
@@ -296,20 +317,17 @@ function Attendance() {
               ● Live Session Active
             </span>
             <h3 style={{ margin: "4px 0", fontSize: "17px" }}>
-              Course: {activeCourseName} · Late threshold:{" "}
-              {activeSession.late_threshold_minutes} min
+              Course: {activeCourseName} · Late threshold: {activeSession.late_threshold_minutes} min
             </h3>
             <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
-              Started: {new Date(activeSession.start_time).toLocaleTimeString()}{" "}
-              · Session ID: <code>{activeSession.session_id}</code>
+              Started: {new Date(activeSession.start_time).toLocaleTimeString()} · Session ID:{" "}
+              <code>{activeSession.session_id}</code>
             </p>
           </div>
 
           <div style={{ textAlign: "right" }}>
-            <span
-              style={{ fontSize: "13px", color: "#64748b", display: "block" }}
-            >
-              Session timing follows the configured class routine
+            <span style={{ fontSize: "13px", color: "#64748b", display: "block" }}>
+              Recognized faces are automatically recorded
             </span>
           </div>
         </div>
@@ -326,8 +344,7 @@ function Attendance() {
             fontWeight: "600",
           }}
         >
-          No session is currently active. Sessions are opened and closed
-          automatically according to class routines.
+          No active session currently running. The scheduler will automatically create sessions according to the configured routine.
         </div>
       )}
 
@@ -369,10 +386,7 @@ function Attendance() {
           style={{
             fontWeight: 600,
             marginBottom: "16px",
-            color:
-              message.includes("success") || message.includes("Started")
-                ? "#15803d"
-                : "#CB2957",
+            color: message.includes("success") || message.includes("Started") ? "#15803d" : "#CB2957",
           }}
         >
           {message}
@@ -401,14 +415,9 @@ function Attendance() {
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: "20px" }}>
-              AI Face Recognition & Liveness Console
-            </h2>
-            <p
-              style={{ margin: "4px 0 0", fontSize: "14px", color: "#64748b" }}
-            >
-              Captures image from PC camera or file upload, passes to FastAPI
-              pipeline (SCRFD + MiniFASNet + ArcFace).
+            <h2 style={{ margin: 0, fontSize: "20px" }}>AI Face Recognition & Liveness Console</h2>
+            <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#64748b" }}>
+              Captures image from PC camera or file upload, passes to FastAPI pipeline (SCRFD + MiniFASNet + ArcFace).
             </p>
           </div>
 
@@ -455,13 +464,7 @@ function Attendance() {
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.1fr 1fr",
-            gap: "24px",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: "24px" }}>
           {/* Left Column: Camera / Image Capture Viewport */}
           <div>
             {testMode === "camera" ? (
@@ -493,9 +496,7 @@ function Attendance() {
 
                   {!cameraActive && (
                     <div style={{ textAlign: "center", color: "#aaa" }}>
-                      <p style={{ margin: "0 0 12px" }}>
-                        Computer camera is inactive
-                      </p>
+                      <p style={{ margin: "0 0 12px" }}>Computer camera is inactive</p>
                       <button
                         type="button"
                         onClick={startCamera}
@@ -533,9 +534,7 @@ function Attendance() {
                   )}
                 </div>
 
-                <div
-                  style={{ display: "flex", gap: "10px", marginTop: "14px" }}
-                >
+                <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
                   {cameraActive && (
                     <>
                       <button
@@ -608,30 +607,19 @@ function Attendance() {
                     <img
                       src={uploadedPreview}
                       alt="Uploaded Preview"
-                      style={{
-                        maxWidth: "100%",
-                        maxHeight: "100%",
-                        objectFit: "contain",
-                      }}
+                      style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
                     />
                   ) : (
                     <div style={{ textAlign: "center", padding: "20px" }}>
                       <p style={{ margin: "0 0 10px", color: "#64748b" }}>
-                        Select a face image file to test AI detection and
-                        recognition
+                        Select a face image file to test AI detection and recognition
                       </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                      />
+                      <input type="file" accept="image/*" onChange={handleFileUpload} />
                     </div>
                   )}
                 </div>
 
-                <div
-                  style={{ display: "flex", gap: "10px", marginTop: "14px" }}
-                >
+                <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
                   <button
                     type="button"
                     onClick={handleScanOnce}
@@ -644,8 +632,7 @@ function Attendance() {
                       background: "#CB2957",
                       color: "#fff",
                       fontWeight: 600,
-                      cursor:
-                        uploadedFile && !scanning ? "pointer" : "not-allowed",
+                      cursor: uploadedFile && !scanning ? "pointer" : "not-allowed",
                       opacity: uploadedFile && !scanning ? 1 : 0.6,
                     }}
                   >
@@ -691,16 +678,8 @@ function Attendance() {
               }}
             >
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <h3 style={{ margin: 0, fontSize: "16px", color: "#111827" }}>
-                    Recognition Output
-                  </h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ margin: 0, fontSize: "16px", color: "#111827" }}>Recognition Output</h3>
                   {aiResult ? (
                     <span
                       style={{
@@ -716,80 +695,36 @@ function Attendance() {
                       {aiResult.matched ? "Matched" : "No Match"}
                     </span>
                   ) : (
-                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                      Waiting for scan...
-                    </span>
+                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Waiting for scan...</span>
                   )}
                 </div>
 
-                <div
-                  style={{
-                    marginTop: "16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                >
+                <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   {/* Face Detected */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                     <span style={{ color: "#64748b" }}>Face Detected:</span>
                     <strong>
-                      {aiResult
-                        ? aiResult.face_detected !== false
-                          ? "YES"
-                          : "NO"
-                        : "—"}
+                      {aiResult ? (aiResult.face_detected !== false ? "YES" : "NO") : "—"}
                     </strong>
                   </div>
 
                   {/* Student Name */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                     <span style={{ color: "#64748b" }}>Student Name:</span>
-                    <strong
-                      style={{
-                        color: aiResult?.student_name ? "#111827" : "#64748b",
-                      }}
-                    >
-                      {aiResult?.student_name ||
-                        (aiResult?.matched ? aiResult?.student_id : "—")}
+                    <strong style={{ color: aiResult?.student_name ? "#111827" : "#64748b" }}>
+                      {aiResult?.student_name || (aiResult?.matched ? aiResult?.student_id : "—")}
                     </strong>
                   </div>
 
                   {/* Student ID */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                     <span style={{ color: "#64748b" }}>Student ID:</span>
                     <code>{aiResult?.student_id || "—"}</code>
                   </div>
 
                   {/* Confidence */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#64748b" }}>
-                      Recognition Confidence:
-                    </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                    <span style={{ color: "#64748b" }}>Recognition Confidence:</span>
                     <strong>
                       {typeof aiResult?.confidence === "number"
                         ? `${(aiResult.confidence * 100).toFixed(1)}%`
@@ -798,16 +733,8 @@ function Attendance() {
                   </div>
 
                   {/* Liveness */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
-                    <span style={{ color: "#64748b" }}>
-                      Liveness Anti-Spoof:
-                    </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+                    <span style={{ color: "#64748b" }}>Liveness Anti-Spoof:</span>
                     <strong>
                       {typeof aiResult?.liveness_score === "number" ? (
                         aiResult.liveness_score >= 0.5 ? (
@@ -826,23 +753,12 @@ function Attendance() {
                   </div>
 
                   {/* Attendance Logged */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "13px",
-                    }}
-                  >
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
                     <span style={{ color: "#64748b" }}>Attendance Status:</span>
                     <strong>
                       {aiResult?.attendance ? (
                         aiResult.attendance.recorded ? (
-                          <span
-                            style={{
-                              color: "#15803d",
-                              textTransform: "uppercase",
-                            }}
-                          >
+                          <span style={{ color: "#15803d", textTransform: "uppercase" }}>
                             ✓ {aiResult.attendance.status || "Recorded"}
                           </span>
                         ) : (
@@ -853,9 +769,7 @@ function Attendance() {
                       ) : activeSession ? (
                         <span style={{ color: "#94a3b8" }}>Session Ready</span>
                       ) : (
-                        <span style={{ color: "#94a3b8" }}>
-                          No active session
-                        </span>
+                        <span style={{ color: "#94a3b8" }}>No active session</span>
                       )}
                     </strong>
                   </div>
@@ -875,20 +789,25 @@ function Attendance() {
                 }}
               >
                 <strong>Backend Msg: </strong>
-                {aiResult?.message ||
-                  "Submit a frame to inspect backend AI pipeline diagnostics."}
+                {aiResult?.message || "Submit a frame to inspect backend AI pipeline diagnostics."}
               </div>
             </div>
           </div>
         </div>
       </div>
 
+
       {/* ================= MANUAL ATTENDANCE TABLE ================= */}
       {activeSession && (
         <div className="manual-attendance-card">
-          <h2>Manual Attendance</h2>
+
+          <h2>
+            Manual Attendance
+          </h2>
+
 
           <table className="manual-attendance-table">
+
             <thead>
               <tr>
                 <th>Student ID</th>
@@ -899,27 +818,41 @@ function Attendance() {
               </tr>
             </thead>
 
+
             <tbody>
+
               {enrolledStudents.map((student) => (
                 <tr key={student.student_id}>
-                  <td>{student.student_id}</td>
 
-                  <td>{student.name}</td>
+                  <td>
+                    {student.student_id}
+                  </td>
 
-                  <td>{student.department}</td>
+
+                  <td>
+                    {student.name}
+                  </td>
+
+
+                  <td>
+                    {student.department}
+                  </td>
+
 
                   <td>
                     <span
-                      className={`manual-status ${
-                        manualAttendance[student.student_id] || "absent"
-                      }`}
+                      className={`manual-status ${manualAttendance[student.student_id] || "absent"
+                        }`}
                     >
                       {manualAttendance[student.student_id] || "Absent"}
                     </span>
                   </td>
 
+
                   <td>
+
                     <div className="manual-action-buttons">
+
                       <button
                         className="manual-attendance-btn"
                         onClick={() =>
@@ -928,14 +861,23 @@ function Attendance() {
                       >
                         Mark Attendance
                       </button>
+
                     </div>
+
                   </td>
+
+
                 </tr>
               ))}
+
             </tbody>
+
           </table>
+
         </div>
       )}
+
+
     </div>
   );
 }

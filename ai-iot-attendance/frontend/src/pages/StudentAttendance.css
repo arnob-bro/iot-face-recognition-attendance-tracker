@@ -1,0 +1,79 @@
+.student-attendance-page {
+  padding: 32px;
+  background: #EEEEEE;
+  min-height: calc(100vh - 70px);
+  color: #000000;
+}
+
+
+.student-attendance-page h1 {
+  margin-bottom: 24px;
+  font-size: 32px;
+  color: #000000;
+}
+
+
+.student-attendance-message {
+  color: #CB2957;
+  margin-bottom: 20px;
+}
+
+
+/* Empty state */
+
+.student-attendance-empty {
+  background: #FFFFFF;
+  border: 1px solid #DDDDDD;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+  color: #000000;
+}
+
+
+
+/* Attendance table */
+
+.student-attendance-table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
+  background: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+
+.student-attendance-table th {
+  background: #000000;
+  color: #FFFFFF;
+  padding: 14px;
+  text-align: left;
+}
+
+
+.student-attendance-table td {
+  padding: 14px;
+  border-bottom: 1px solid #DDDDDD;
+  color: #000000;
+}
+
+
+.student-attendance-table tr:hover {
+  background: #EEEEEE;
+}
+
+
+.student-attendance-table tr:last-child td {
+  border-bottom: none;
+}
+
+
+
+/* Loading */
+
+.student-attendance-loading {
+  padding: 40px;
+  background: #EEEEEE;
+  color: #000000;
+}
