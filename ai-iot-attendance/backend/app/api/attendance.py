@@ -1,17 +1,10 @@
-"""
-Attendance routes — session management and attendance recording.
-
-Sessions are started/ended by teachers. Individual attendance records
-are submitted by the Raspberry Pi client or manually.
-"""
+"""Attendance read and record routes; session lifecycle is routine-driven."""
 
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, require_teacher_or_admin
 from app.schemas.auth import UserInToken
 from app.schemas.attendance import (
-    SessionCreate,
-    SessionUpdate,
     SessionResponse,
     AttendanceRecordCreate,
     AttendanceRecordResponse,
@@ -21,31 +14,6 @@ from app.schemas.attendance import (
 from app.services import attendance_service
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
-
-
-@router.post(
-    "/sessions",
-    response_model=SessionResponse,
-    status_code=201,
-)
-async def start_session(
-    data: SessionCreate,
-    current_user: UserInToken = Depends(require_teacher_or_admin),
-):
-    """Start a new attendance session for a course."""
-    return await attendance_service.start_session(data, current_user.user_id)
-
-
-@router.put("/sessions/{session_id}", response_model=SessionResponse)
-async def update_session(
-    session_id: str,
-    data: SessionUpdate,
-    current_user: UserInToken = Depends(require_teacher_or_admin),
-):
-    """End or cancel an attendance session."""
-    return await attendance_service.end_session(
-        session_id, data, current_user.user_id
-    )
 
 
 @router.get("/sessions/active", response_model=SessionResponse | None)

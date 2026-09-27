@@ -8,18 +8,6 @@ from typing import Optional
 from app.schemas.common import normalize_timestamp
 
 
-class SessionCreate(BaseModel):
-    """Request body for starting an attendance session."""
-    course_id: str
-    late_threshold_minutes: int = 15
-    device_id: str | None = None
-
-
-class SessionUpdate(BaseModel):
-    """Request body for ending/cancelling a session."""
-    status: str  # "completed" or "cancelled"
-
-
 class SessionResponse(BaseModel):
     """Attendance session data."""
     session_id: str
@@ -31,6 +19,11 @@ class SessionResponse(BaseModel):
     late_threshold_minutes: int
     status: str  # "active", "completed", "cancelled"
     device_id: str | None = None
+    source: str = "routine"
+    routine_id: str | None = None
+    cancelled_at: str | None = None
+    cancelled_by: str | None = None
+    cancel_reason: str | None = None
     present_count: int = 0
     late_count: int = 0
     absent_count: int = 0

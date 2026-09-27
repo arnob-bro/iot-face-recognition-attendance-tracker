@@ -69,3 +69,15 @@ async def require_teacher_or_admin(
             "This action requires teacher or admin privileges."
         )
     return current_user
+
+
+async def require_student_or_self(
+    student_id: str,
+    current_user: UserInToken = Depends(get_current_user),
+) -> UserInToken:
+    """Only allow the matching student or an admin/teacher explicit access."""
+    if current_user.role in ("admin", "teacher"):
+        return current_user
+    if current_user.role == "student" and current_user.student_id == student_id:
+        return current_user
+    raise AuthorizationError("You can only access your own student record.")

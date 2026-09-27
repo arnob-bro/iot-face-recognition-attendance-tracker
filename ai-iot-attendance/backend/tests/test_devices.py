@@ -1,5 +1,24 @@
 """Tests for Raspberry Pi device assignment and session scoping."""
 
+import asyncio
+
+import pytest
+
+from app.core.exceptions import DuplicateError
+from app.services import attendance_service
+
+
+def _start_routine_session(course_id, routine_id, device_id):
+    return asyncio.run(
+        attendance_service.start_routine_session(
+            {
+                "course_id": course_id,
+                "teacher_id": "device-test-teacher",
+                "device_id": device_id,
+            },
+            routine_id,
+        )
+    )
 
 def _create_course(client, headers, code):
     response = client.post(
@@ -28,13 +47,10 @@ class TestDevices:
         device_data = device.json()
         course_id = _create_course(client, auth_headers, "DEV101")
 
-        session = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_id, "device_id": "rpi-device-test"},
+        session = _start_routine_session(
+            course_id, "routine-device-test", "rpi-device-test"
         )
-        assert session.status_code == 201
-        session_id = session.json()["session_id"]
+        session_id = session.session_id
 
         login = client.post(
             "/api/v1/devices/login",
@@ -59,12 +75,11 @@ class TestDevices:
         )
         assert record.status_code == 201
 
-        ended = client.put(
-            f"/api/v1/attendance/sessions/{session_id}",
-            headers=auth_headers,
-            json={"status": "completed"},
+        asyncio.run(
+            attendance_service.complete_routine_session(
+                session_id, "routine-device-test"
+            )
         )
-        assert ended.status_code == 200
         assert client.get(
             "/api/v1/attendance/sessions/active", headers=device_headers
         ).json() is None
@@ -79,15 +94,10 @@ class TestDevices:
         course_one = _create_course(client, auth_headers, "DEV201")
         course_two = _create_course(client, auth_headers, "DEV202")
 
-        first = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_one, "device_id": "rpi-device-conflict"},
+        _start_routine_session(
+            course_one, "routine-device-conflict-one", "rpi-device-conflict"
         )
-        assert first.status_code == 201
-        second = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_two, "device_id": "rpi-device-conflict"},
-        )
-        assert second.status_code == 409
+        with pytest.raises(DuplicateError):
+            _start_routine_session(
+                course_two, "routine-device-conflict-two", "rpi-device-conflict"
+            )

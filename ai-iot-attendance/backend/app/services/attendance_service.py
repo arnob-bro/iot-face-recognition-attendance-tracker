@@ -21,8 +21,6 @@ from app.core.exceptions import (
     ValidationError,
 )
 from app.schemas.attendance import (
-    SessionCreate,
-    SessionUpdate,
     SessionResponse,
     AttendanceRecordCreate,
     AttendanceRecordResponse,
@@ -48,63 +46,48 @@ def _record_document_id(session_id: str, student_id: str) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-async def start_session(
-    data: SessionCreate, teacher_id: str
-) -> SessionResponse:
+async def start_routine_session(routine: dict, routine_id: str) -> SessionResponse:
     """
     Start a new attendance session for a course.
 
-    Only one active session per course is allowed at a time.
+    Only one active session per course and device is allowed at a time.
     """
     db = get_db()
 
     # Verify course exists
-    course_doc = db.collection(COURSES_COLLECTION).document(data.course_id).get()
+    course_id = routine["course_id"]
+    teacher_id = routine["teacher_id"]
+    device_id = routine.get("device_id")
+    late_threshold_minutes = int(routine.get("late_threshold_minutes", 15))
+    course_doc = db.collection(COURSES_COLLECTION).document(course_id).get()
     if not course_doc.exists:
-        raise NotFoundError("Course", data.course_id)
+        raise NotFoundError("Course", course_id)
 
-    if data.device_id:
-        device_doc = db.collection(DEVICES_COLLECTION).document(data.device_id).get()
+    if device_id:
+        device_doc = db.collection(DEVICES_COLLECTION).document(device_id).get()
         if not device_doc.exists:
-            raise NotFoundError("Raspberry Pi device", data.device_id)
+            raise NotFoundError("Raspberry Pi device", device_id)
         if not device_doc.to_dict().get("enabled", True):
             raise ValidationError("The assigned Raspberry Pi device is disabled.")
 
-    # Check for existing active session on same course
-    existing = (
-        db.collection(SESSIONS_COLLECTION)
-        .where("course_id", "==", data.course_id)
-        .where("status", "==", "active")
-        .limit(1)
-        .get()
+    await _ensure_session_slot_available(
+        db,
+        course_id=course_id,
+        device_id=device_id,
     )
-    if existing:
-        raise DuplicateError(
-            "Active session",
-            f"course {data.course_id}",
-        )
-
-    if data.device_id:
-        device_sessions = (
-            db.collection(SESSIONS_COLLECTION)
-            .where("device_id", "==", data.device_id)
-            .where("status", "==", "active")
-            .limit(1)
-            .get()
-        )
-        if device_sessions:
-            raise DuplicateError("Active session", f"device {data.device_id}")
 
     now = datetime.now(timezone.utc)
     doc_data = {
-        "course_id": data.course_id,
+        "course_id": course_id,
         "teacher_id": teacher_id,
         "session_date": now.strftime("%Y-%m-%d"),
         "start_time": now.isoformat(),
         "end_time": None,
-        "late_threshold_minutes": data.late_threshold_minutes,
+        "late_threshold_minutes": late_threshold_minutes,
         "status": "active",
-        "device_id": data.device_id,
+        "device_id": device_id,
+        "source": "routine",
+        "routine_id": routine_id,
     }
 
     doc_ref = db.collection(SESSIONS_COLLECTION).add(doc_data)
@@ -116,8 +99,8 @@ async def start_session(
     })
 
     logger.info(
-        f"Started session {session_id} for course {data.course_id} "
-        f"(late threshold: {data.late_threshold_minutes}min)"
+        f"Started routine session {session_id} for course {course_id} "
+        f"(late threshold: {late_threshold_minutes}min)"
     )
 
     return SessionResponse(
@@ -126,14 +109,11 @@ async def start_session(
     )
 
 
-async def end_session(
-    session_id: str, data: SessionUpdate, teacher_id: str
-) -> SessionResponse:
+async def complete_routine_session(session_id: str, routine_id: str) -> SessionResponse:
     """
-    End or cancel an attendance session.
+    Complete a routine-owned attendance session.
 
-    When ending (status='completed'), marks all unmarked enrolled students
-    as absent.
+    Marks all unmarked enrolled students absent and releases the active slot.
     """
     db = get_db()
     doc_ref = db.collection(SESSIONS_COLLECTION).document(session_id)
@@ -144,6 +124,9 @@ async def end_session(
 
     session_data = doc.to_dict()
 
+    if session_data.get("source") != "routine" or session_data.get("routine_id") != routine_id:
+        raise ValidationError("Only the matching routine may complete this session.")
+
     if session_data["status"] != "active":
         raise ValidationError(
             f"Session is already '{session_data['status']}'. "
@@ -151,18 +134,15 @@ async def end_session(
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    doc_ref.update({
-        "status": data.status,
+    doc_ref.update({"status": "completed", "end_time": now})
+    await _mark_absent_students(db, session_id, session_data["course_id"])
+
+    logger.info(f"Routine session {session_id} completed")
+
+    session_data.update({
+        "status": "completed",
         "end_time": now,
     })
-
-    # If completing (not cancelling), mark absent students
-    if data.status == "completed":
-        await _mark_absent_students(db, session_id, session_data["course_id"])
-
-    logger.info(f"Session {session_id} → {data.status}")
-
-    session_data.update({"status": data.status, "end_time": now})
     counts = await _get_session_counts(db, session_id)
 
     return SessionResponse(
@@ -370,6 +350,35 @@ async def get_student_attendance(
         )
 
     return records
+
+
+async def _ensure_session_slot_available(
+    db,
+    *,
+    course_id: str,
+    device_id: str | None,
+) -> None:
+    """Central collision guard: no two active sessions can share a course or device."""
+    course_docs = (
+        db.collection(SESSIONS_COLLECTION)
+        .where("course_id", "==", course_id)
+        .where("status", "==", "active")
+        .limit(1)
+        .get()
+    )
+    if course_docs:
+        raise DuplicateError("Active session", f"course {course_id}")
+
+    if device_id:
+        device_docs = (
+            db.collection(SESSIONS_COLLECTION)
+            .where("device_id", "==", device_id)
+            .where("status", "==", "active")
+            .limit(1)
+            .get()
+        )
+        if device_docs:
+            raise DuplicateError("Active session", f"device {device_id}")
 
 
 async def _mark_absent_students(

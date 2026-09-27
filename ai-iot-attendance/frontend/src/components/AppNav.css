@@ -1,0 +1,74 @@
+.app-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 32px;
+  background: #000000;
+  color: #CB2957;
+  border-bottom: 0.3rem solid #CB2957;
+  min-height: 7rem;
+}
+
+.app-nav-brand {
+  font-weight: 1000;
+  letter-spacing: 0.3px;
+  font-size: x-large;
+  font-family: serif;
+  white-space: nowrap;
+}
+
+.app-nav-brand:hover {
+  cursor: pointer;
+  color: #e75a82;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(20px, 4vw, 60px);
+  flex: 1;
+}
+
+.app-nav-links a {
+  color: #DDDDDD;
+  text-decoration: none;
+  font-size: large;
+  white-space: nowrap;
+}
+
+.app-nav-links a.active,
+.app-nav-links a:hover {
+  color: #cb2957c9;
+}
+
+.app-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: medium;
+  white-space: nowrap;
+}
+
+.app-nav-user button {
+  border: none;
+  background: #CB2957;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app-nav-user button:hover {
+  transform: translateY(-1px);
+  background: #ac1c45;
+}
+
+.app-nav-user-name {
+  display: flex;
+  align-self: center;
+  flex-direction: column;
+  align-items: center;
+}

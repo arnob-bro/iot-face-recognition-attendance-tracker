@@ -33,6 +33,7 @@ def _reset_firestore_collections():
         "attendance_records",
         "face_embeddings",
         "rpi_devices",
+        "class_routines",
     ]:
         docs = db.collection(collection_name).stream()
         for doc in docs:

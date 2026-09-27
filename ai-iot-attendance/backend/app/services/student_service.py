@@ -9,18 +9,48 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.firebase import get_db
-from app.core.exceptions import NotFoundError, DuplicateError
+from app.core.exceptions import NotFoundError, DuplicateError, AuthenticationError
+from app.core.security import hash_password, verify_password, create_access_token
 from app.schemas.student import (
     StudentCreate,
     StudentUpdate,
     StudentResponse,
     StudentListResponse,
+    StudentPasswordChange,
 )
 
 logger = logging.getLogger(__name__)
 
 STUDENTS_COLLECTION = "students"
 FACE_EMBEDDINGS_COLLECTION = "face_embeddings"
+
+
+async def login_student(student_id: str, password: str) -> dict:
+    """Authenticate a student and return a JWT payload."""
+    db = get_db()
+    doc = db.collection(STUDENTS_COLLECTION).document(student_id).get()
+    if not doc.exists:
+        raise AuthenticationError("Invalid student credentials.")
+
+    student_data = doc.to_dict()
+    if not student_data.get("password_hash"):
+        raise AuthenticationError("This student account has no password set.")
+    if not verify_password(password, student_data["password_hash"]):
+        raise AuthenticationError("Invalid student credentials.")
+
+    token = create_access_token({
+        "sub": student_id,
+        "email": student_data.get("email", ""),
+        "role": "student",
+        "student_id": student_id,
+    })
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "role": "student",
+        "name": student_data.get("name", student_id),
+    }
 
 
 async def create_student(data: StudentCreate) -> StudentResponse:
@@ -33,12 +63,26 @@ async def create_student(data: StudentCreate) -> StudentResponse:
         raise DuplicateError("Student", data.student_id)
 
     now = datetime.now(timezone.utc).isoformat()
+    must_change_password = False
+    password_hash = None
+    if data.password:
+        password_hash = hash_password(data.password)
+        must_change_password = False
+    else:
+        # Default behavior: auto-generate a temporary password for the student so
+        # they can sign in and change it immediately. This matches the repo's
+        # pattern of admin-created credentials with a secure hash.
+        password_hash = hash_password(f"{data.student_id}-changeme")
+        must_change_password = True
+
     doc_data = {
         "student_id": data.student_id,
         "name": data.name,
         "department": data.department,
         "batch": data.batch,
         "email": data.email,
+        "password_hash": password_hash,
+        "must_change_password": must_change_password,
         "is_active": True,
         "created_at": now,
     }
@@ -49,10 +93,13 @@ async def create_student(data: StudentCreate) -> StudentResponse:
     # Check if face is enrolled
     face_enrolled = _check_face_enrolled(db, data.student_id)
 
-    return StudentResponse(
+    response = StudentResponse(
         **doc_data,
         face_enrolled=face_enrolled,
+        must_change_password=must_change_password,
+        temporary_password=(None if data.password else f"{data.student_id}-changeme"),
     )
+    return response
 
 
 async def get_student(student_id: str) -> StudentResponse:
@@ -67,7 +114,11 @@ async def get_student(student_id: str) -> StudentResponse:
     face_enrolled = _check_face_enrolled(db, student_id)
     data.pop("face_enrolled", None)
 
-    return StudentResponse(**data, face_enrolled=face_enrolled)
+    return StudentResponse(
+        **data,
+        face_enrolled=face_enrolled,
+        must_change_password=data.get("must_change_password", False),
+    )
 
 
 async def list_students(

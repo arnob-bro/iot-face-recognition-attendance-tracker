@@ -13,6 +13,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class StudentLoginRequest(BaseModel):
+    """Student login credentials."""
+    student_id: str
+    password: str
+
+
 class TokenResponse(BaseModel):
     """JWT token response returned after successful login."""
     access_token: str
@@ -81,3 +87,4 @@ class UserInToken(BaseModel):
     email: str
     role: str
     device_id: str | None = None
+    student_id: str | None = None

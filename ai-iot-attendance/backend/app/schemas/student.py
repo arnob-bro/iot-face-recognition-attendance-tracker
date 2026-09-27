@@ -15,7 +15,14 @@ class StudentCreate(BaseModel):
     department: str
     batch: str
     email: EmailStr
+    password: str | None = None
     course_ids: list[str] = []
+
+
+class StudentPasswordChange(BaseModel):
+    """Self-service password change request."""
+    current_password: str
+    new_password: str
 
 
 class StudentUpdate(BaseModel):
@@ -35,7 +42,9 @@ class StudentResponse(BaseModel):
     email: str
     is_active: bool = True
     face_enrolled: bool = False
+    must_change_password: bool = False
     created_at: str | None = None
+    temporary_password: str | None = None
 
     @field_validator("created_at", mode="before")
     @classmethod

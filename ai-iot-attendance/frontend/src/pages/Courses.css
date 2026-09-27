@@ -1,0 +1,230 @@
+.courses-page {
+    padding: 32px;
+    background: #eeeeee;
+    min-height: calc(100vh - 70px);
+}
+
+
+.courses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+
+.courses-header h1 {
+    margin: 0;
+    color: #000;
+}
+
+
+.courses-header p {
+    color: #555;
+}
+
+
+
+.courses-card,
+.students-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+
+
+.courses-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+
+.courses-table th {
+    background: #030303;
+    padding: 14px;
+    text-align: center;
+    color: #ffffff;
+}
+
+
+.courses-table td {
+    padding: 14px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+    font-weight: 500;
+}
+
+
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+
+
+.primary-btn {
+    background: #cb2957;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-family: sans-serif;
+    transition: all 0.2s ease;
+}
+
+
+.view-btn {
+    background: #eeeeee;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: monospace;
+    font-size: medium;
+}
+
+
+.edit-btn {
+    background: #000;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: monospace;
+    font-size: medium;
+}
+
+
+.delete-btn {
+    background: #cb2957;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: monospace;
+    font-size: medium;
+}
+
+
+.students-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+
+.close-btn {
+    background: #eeeeee;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: monospace;
+    font-size: medium;
+    transition: all 0.2s ease;
+}
+
+
+.enroll-box {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+
+.enroll-box input,
+.course-modal input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.course-modal {
+    background: white;
+    width: 420px;
+    padding: 30px;
+    border-radius: 16px;
+}
+
+
+.course-modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+
+.cancel-btn {
+    background: #ddd;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+}
+
+.view-btn.active {
+    background: #d43361;
+    color: white;
+}
+
+.view-btn:hover {
+    transform: translateY(-1px);
+    background: #ac1c45;
+    color: white;
+}
+
+
+.edit-btn:hover {
+    transform: translateY(-1px);
+    background: #7a7476;
+    color: black;
+}
+
+
+.delete-btn:hover {
+    transform: translateY(-1px);
+    background: #ac1c45;
+    color: white;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    background: #ac1c45;
+    color: white;
+}
+
+.close-btn:hover {
+    transform: translateY(-2px);
+    background: #ac1c45;
+    color: white;
+}

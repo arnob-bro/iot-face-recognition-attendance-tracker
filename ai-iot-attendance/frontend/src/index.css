@@ -1,0 +1,105 @@
+/* =====================================================
+   GLOBAL DESIGN TOKENS
+   Single source of truth for the color palette, type,
+   radii, and shadows used across the whole app.
+   Every page/component should reference these variables
+   instead of hardcoding colors.
+   ===================================================== */
+:root {
+  /* Palette */
+  --color-primary: #A2AB73;
+  --color-primary-dark: #838a5c;
+  --color-primary-light: #eef0e3;
+
+  --color-accent: #CC3A63;
+  --color-accent-dark: #a92f51;
+  --color-accent-light: #fbe6ec;
+
+  --color-bg: #FFF7EB;
+  --color-bg-soft: #F9F0E0;
+  --color-surface: #ffffff;
+
+  --color-text: #1f2417;
+  --color-text-muted: #6b6f5e;
+  --color-border: #e4dcc4;
+
+  /* Status colors (attendance states) */
+  --color-present: #4d7c4d;
+  --color-present-bg: #e7f0e2;
+  --color-absent: #CC3A63;
+  --color-absent-bg: #fbe6ec;
+  --color-late: #b9791f;
+  --color-late-bg: #faf0dc;
+  --color-running: #2f7d9e;
+  --color-running-bg: #e4f1f6;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(31, 36, 23, 0.06);
+  --shadow-md: 0 8px 24px rgba(31, 36, 23, 0.08);
+  --shadow-modal: 0 24px 60px rgba(31, 36, 23, 0.18);
+
+  /* Type */
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--color-text);
+  background: var(--color-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Make the page use the entire browser window */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Basic heading styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+  color: var(--color-text);
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}

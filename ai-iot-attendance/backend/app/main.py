@@ -9,6 +9,7 @@ Configures:
 """
 
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -17,7 +18,8 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.firebase import init_firebase, close_firebase
-from app.api import auth, students, courses, attendance, faces, reports, dashboard, devices
+from app.api import auth, students, courses, attendance, faces, reports, dashboard, devices, routines
+from app.services.routine_scheduler import run_routine_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -52,14 +54,20 @@ async def lifespan(app: FastAPI):
         name=settings.admin_name,
     )
 
+    scheduler_stop = asyncio.Event()
+    scheduler_task = asyncio.create_task(run_routine_scheduler(scheduler_stop))
+
     logger.info(f"Backend ready at {settings.api_base_url}")
     logger.info(f"API docs: {settings.api_base_url}/docs")
 
-    yield
-
-    # --- Shutdown ---
-    close_firebase()
-    logger.info("Backend shut down.")
+    try:
+        yield
+    finally:
+        # --- Shutdown ---
+        scheduler_stop.set()
+        await scheduler_task
+        close_firebase()
+        logger.info("Backend shut down.")
 
 
 # Create the FastAPI app
@@ -113,6 +121,7 @@ app.include_router(faces.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(dashboard.router, prefix=API_PREFIX)
 app.include_router(devices.router, prefix=API_PREFIX)
+app.include_router(routines.router, prefix=API_PREFIX)
 
 
 # --- Health Check ---

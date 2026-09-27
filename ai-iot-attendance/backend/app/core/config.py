@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # --- Attendance ---
     attendance_cooldown_seconds: int = 60
     late_threshold_minutes: int = 15
+    routine_timezone: str = "UTC"
+    routine_scheduler_interval_seconds: int = 30
 
     # --- Camera ---
     camera_index: int = 0

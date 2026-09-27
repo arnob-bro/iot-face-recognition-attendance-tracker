@@ -2,11 +2,26 @@
 Tests for attendance session and recording endpoints.
 """
 
+import asyncio
 import pytest
+
+from app.services import attendance_service
 
 
 class TestAttendance:
     """Test the /api/v1/attendance/* endpoints."""
+
+    def _start_routine_session(self, course_id):
+        routine_id = f"routine-{course_id}"
+        routine = {
+            "course_id": course_id,
+            "teacher_id": "test_teacher",
+            "late_threshold_minutes": 15,
+        }
+        session = asyncio.run(
+            attendance_service.start_routine_session(routine, routine_id)
+        )
+        return session.session_id, routine_id
 
     def _setup_course_and_student(self, client, auth_headers):
         """Helper: create a course and student for attendance testing."""
@@ -50,24 +65,17 @@ class TestAttendance:
 
         return course_id
 
-    def test_start_session(self, client, auth_headers):
-        """Should start an attendance session."""
-        course_id = self._setup_course_and_student(client, auth_headers)
-        if not course_id:
-            pytest.skip("Course creation failed")
-
-        response = client.post(
+    def test_manual_session_lifecycle_routes_are_removed(self, client, auth_headers):
+        assert client.post(
             "/api/v1/attendance/sessions",
             headers=auth_headers,
-            json={
-                "course_id": course_id,
-                "late_threshold_minutes": 15,
-            },
-        )
-        assert response.status_code == 201
-        data = response.json()
-        assert data["status"] == "active"
-        assert data["course_id"] == course_id
+            json={"course_id": "course-1"},
+        ).status_code == 405
+        assert client.put(
+            "/api/v1/attendance/sessions/session-1",
+            headers=auth_headers,
+            json={"status": "completed"},
+        ).status_code == 405
 
     def test_record_attendance(self, client, auth_headers):
         """Should record a student's attendance in an active session."""
@@ -76,14 +84,7 @@ class TestAttendance:
             pytest.skip("Course creation failed")
 
         # Start session
-        session_resp = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_id, "late_threshold_minutes": 15},
-        )
-        session_id = session_resp.json().get("session_id", "")
-        if not session_id:
-            pytest.skip("Session creation failed")
+        session_id, _ = self._start_routine_session(course_id)
 
         # Record attendance
         response = client.post(
@@ -107,14 +108,7 @@ class TestAttendance:
             pytest.skip("Course creation failed")
 
         # Start session
-        session_resp = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_id, "late_threshold_minutes": 15},
-        )
-        session_id = session_resp.json().get("session_id", "")
-        if not session_id:
-            pytest.skip("Session creation failed")
+        session_id, _ = self._start_routine_session(course_id)
 
         # First record
         resp1 = client.post(
@@ -135,30 +129,18 @@ class TestAttendance:
         assert resp2.status_code == 201
         assert resp1.json()["record_id"] == resp2.json()["record_id"]
 
-    def test_end_session(self, client, auth_headers):
-        """Should end a session and mark absent students."""
+    def test_routine_completion_marks_absent_students(self, client, auth_headers):
+        """Routine completion marks unrecorded students absent."""
         course_id = self._setup_course_and_student(client, auth_headers)
         if not course_id:
             pytest.skip("Course creation failed")
 
         # Start session
-        session_resp = client.post(
-            "/api/v1/attendance/sessions",
-            headers=auth_headers,
-            json={"course_id": course_id, "late_threshold_minutes": 15},
+        session_id, routine_id = self._start_routine_session(course_id)
+        completed = asyncio.run(
+            attendance_service.complete_routine_session(session_id, routine_id)
         )
-        session_id = session_resp.json().get("session_id", "")
-        if not session_id:
-            pytest.skip("Session creation failed")
-
-        # End session
-        response = client.put(
-            f"/api/v1/attendance/sessions/{session_id}",
-            headers=auth_headers,
-            json={"status": "completed"},
-        )
-        assert response.status_code == 200
-        assert response.json()["status"] == "completed"
+        assert completed.status == "completed"
 
     def test_health_check(self, client):
         """Health check should always succeed."""
