@@ -11,6 +11,39 @@
   color: #000000;
 }
 
+.student-attendance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.student-attendance-heading h1 {
+  margin-bottom: 24px;
+}
+
+.student-course-picker {
+  display: grid;
+  gap: 6px;
+  min-width: min(300px, 45%);
+  margin-bottom: 24px;
+  color: #555555;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.student-course-picker select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  font-size: 15px;
+}
+
 .student-attendance-message {
   color: #cb2957;
   margin-bottom: 20px;
@@ -73,6 +106,11 @@
 }
 
 .student-course-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  column-gap: 24px;
+  row-gap: 20px;
   background: #ffffff;
   border: 1px solid #dddddd;
   border-radius: 12px;
@@ -80,6 +118,7 @@
 }
 
 .student-course-header {
+  grid-column: 1 / -1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -115,6 +154,7 @@
 }
 
 .student-course-stats {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
@@ -123,11 +163,61 @@
   font-size: 14px;
 }
 
+.student-course-section .attendance-pie-card {
+  min-width: 0;
+  margin: 0;
+  padding: 20px 12px;
+  border-right: 1px solid #e4dcc4;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .student-course-section .student-attendance-table {
-  margin-top: 20px;
+  min-width: 0;
+  margin-top: 0;
 }
 
 .student-course-empty {
-  margin: 20px 0 0;
+  margin: 0;
   color: #555555;
+}
+
+@media (max-width: 640px) {
+  .student-attendance-page {
+    padding: 24px 16px;
+  }
+
+  .student-attendance-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .student-course-picker {
+    min-width: 0;
+  }
+
+  .student-course-header {
+    flex-direction: column;
+  }
+
+  .student-course-percentage {
+    text-align: left;
+  }
+
+  .student-course-section {
+    padding: 18px;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 16px;
+  }
+
+  .student-course-section .attendance-pie-card {
+    border-right: 0;
+    border-bottom: 1px solid #e4dcc4;
+  }
+
+  .student-attendance-table {
+    display: block;
+    overflow-x: auto;
+  }
 }

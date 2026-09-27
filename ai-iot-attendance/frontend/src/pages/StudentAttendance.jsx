@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { getStudentCourses } from "../api/students";
 import "./StudentAttendance.css";
 import Loader from "../components/Loader";
+import AttendancePieChart from "../components/AttendancePieChart";
 
 function StudentAttendance() {
   const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -13,7 +15,13 @@ function StudentAttendance() {
     const loadAttendance = async () => {
       try {
         const enrolledCourses = await getStudentCourses();
-        setCourses(Array.isArray(enrolledCourses) ? enrolledCourses : []);
+        const availableCourses = Array.isArray(enrolledCourses)
+          ? enrolledCourses
+          : [];
+        setCourses(availableCourses);
+        setSelectedCourseId(
+          availableCourses[0] ? String(availableCourses[0].course_id) : ""
+        );
       } catch (error) {
         setMessage(error.message || "Failed to load attendance.");
       } finally {
@@ -24,13 +32,34 @@ function StudentAttendance() {
     loadAttendance();
   }, []);
 
+  const selectedCourse = courses.find(
+    (course) => String(course.course_id) === selectedCourseId
+  );
+
   if (loading) {
     return <Loader />;
   }
 
   return (
     <div className="student-attendance-page">
-      <h1>My Attendance</h1>
+      <div className="student-attendance-heading">
+        <h1>My Attendance</h1>
+        {courses.length > 0 && (
+          <label className="student-course-picker">
+            <span>Course</span>
+            <select
+              value={selectedCourseId}
+              onChange={(event) => setSelectedCourseId(event.target.value)}
+            >
+              {courses.map((course) => (
+                <option key={course.course_id} value={String(course.course_id)}>
+                  {course.course_code} · {course.course_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {message && <p className="student-attendance-message">{message}</p>}
 
@@ -39,32 +68,39 @@ function StudentAttendance() {
           You are not currently enrolled in any courses.
         </p>
       ) : (
-        <div className="student-course-list">
-          {courses.map((course) => (
-            <section className="student-course-section" key={course.course_id}>
+        selectedCourse && (
+          <div className="student-course-list">
+            <section
+              className="student-course-section"
+              key={selectedCourse.course_id}
+            >
               <div className="student-course-header">
                 <div>
                   <h2>
-                    {course.course_code} · {course.course_name}
+                    {selectedCourse.course_code} · {selectedCourse.course_name}
                   </h2>
                   <p>
-                    Section {course.section} · {course.department}
+                    Section {selectedCourse.section} · {selectedCourse.department}
                   </p>
                 </div>
                 <div className="student-course-percentage">
-                  <strong>{course.percentage.toFixed(1)}%</strong>
+                  <strong>
+                    {Number(selectedCourse.percentage || 0).toFixed(1)}%
+                  </strong>
                   <span>attendance</span>
                 </div>
               </div>
 
               <div className="student-course-stats">
-                <span>Total classes: {course.total_classes}</span>
-                <span>Present: {course.present}</span>
-                <span>Late: {course.late}</span>
-                <span>Absent: {course.absent}</span>
+                <span>Total classes: {selectedCourse.total_classes || 0}</span>
+                <span>Present: {selectedCourse.present || 0}</span>
+                <span>Late: {selectedCourse.late || 0}</span>
+                <span>Absent: {selectedCourse.absent || 0}</span>
               </div>
 
-              {course.attendance_history.length === 0 ? (
+              <AttendancePieChart reports={[selectedCourse]} />
+
+              {(selectedCourse.attendance_history || []).length === 0 ? (
                 <p className="student-course-empty">
                   No sessions have been recorded yet.
                 </p>
@@ -79,7 +115,7 @@ function StudentAttendance() {
                     </tr>
                   </thead>
                   <tbody>
-                    {course.attendance_history.map((record) => (
+                    {(selectedCourse.attendance_history || []).map((record) => (
                       <tr key={record.session_id}>
                         <td>
                           {record.session_date || record.start_time || "-"}
@@ -93,8 +129,8 @@ function StudentAttendance() {
                 </table>
               )}
             </section>
-          ))}
-        </div>
+          </div>
+        )
       )}
     </div>
   );
