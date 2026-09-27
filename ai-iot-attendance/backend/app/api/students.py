@@ -12,6 +12,7 @@ from app.schemas.student import (
     StudentResponse,
     StudentListResponse,
     StudentPasswordChange,
+    StudentCourseAttendance,
 )
 from app.schemas.attendance import AttendanceRecordResponse
 from app.services import student_service, attendance_service
@@ -42,6 +43,15 @@ async def change_password(
     if current_user.role != "student":
         raise HTTPException(status_code=403, detail="Only a student may change a student password.")
     return await student_service.change_password(current_user.student_id or current_user.user_id, data)
+
+
+@router.get("/me/courses", response_model=list[StudentCourseAttendance])
+async def get_my_courses(current_user: UserInToken = Depends(get_current_user)):
+    """Return the student's current enrollments and attendance summaries."""
+    if current_user.role != "student":
+        raise HTTPException(status_code=403, detail="This endpoint is for student accounts only.")
+    student_id = current_user.student_id or current_user.user_id
+    return await student_service.get_student_courses_with_attendance(student_id)
 
 
 @router.get("/", response_model=StudentListResponse)

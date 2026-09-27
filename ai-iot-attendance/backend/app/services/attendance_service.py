@@ -382,7 +382,7 @@ async def get_student_attendance(
 
         records.append(record_dict)
 
-        return records
+    return records
 
 async def _ensure_session_slot_available(
     db,

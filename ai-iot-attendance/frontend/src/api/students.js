@@ -8,6 +8,7 @@
  *   PUT    /api/v1/students/{student_id}             → StudentResponse (admin only)
  *   DELETE /api/v1/students/{student_id}             → { message } (admin only)
  *   GET    /api/v1/students/{student_id}/attendance  → [AttendanceRecordResponse]
+ *   GET    /api/v1/students/me/courses               → [StudentCourseAttendance]
  *
  * Student authentication:
  *   POST   /api/v1/students/login                    → { access_token, token_type }
@@ -39,7 +40,6 @@
 
 import { apiRequest } from "./client";
 
-
 /**
  * List all students with optional filters.
  *
@@ -56,7 +56,6 @@ export async function listStudents(filters = {}) {
 
   return apiRequest(`/api/v1/students/${qs}`);
 }
-
 
 /**
  * Create a new student (admin only).
@@ -77,7 +76,6 @@ export async function createStudent(data) {
   });
 }
 
-
 /**
  * Get a single student by ID.
  *
@@ -86,7 +84,6 @@ export async function createStudent(data) {
 export async function getStudent(studentId) {
   return apiRequest(`/api/v1/students/${studentId}`);
 }
-
 
 /**
  * Update a student (admin only).
@@ -106,7 +103,6 @@ export async function updateStudent(studentId, data) {
   });
 }
 
-
 /**
  * Deactivate/delete a student (admin only).
  *
@@ -117,7 +113,6 @@ export async function deleteStudent(studentId) {
     method: "DELETE",
   });
 }
-
 
 /**
  * Get a student's attendance history.
@@ -130,7 +125,6 @@ export async function getStudentAttendance(studentId, courseId = null) {
 
   return apiRequest(`/api/v1/students/${studentId}/attendance${qs}`);
 }
-
 
 /**
  * Student login.
@@ -150,10 +144,9 @@ export async function studentLogin(studentId, password) {
     `/api/v1/students/login?student_id=${encodeURIComponent(studentId)}&password=${encodeURIComponent(password)}`,
     {
       method: "POST",
-    }
+    },
   );
 }
-
 
 /**
  * Get currently logged-in student's profile.
@@ -164,7 +157,6 @@ export async function studentLogin(studentId, password) {
 export async function getStudentMe() {
   return apiRequest("/api/v1/students/me");
 }
-
 
 /**
  * Change logged-in student's password.
@@ -182,4 +174,11 @@ export async function changeStudentPassword(data) {
     method: "POST",
     body: data,
   });
+}
+
+/**
+ * Get the logged-in student's enrolled courses and attendance summaries.
+ */
+export async function getStudentCourses() {
+  return apiRequest("/api/v1/students/me/courses");
 }

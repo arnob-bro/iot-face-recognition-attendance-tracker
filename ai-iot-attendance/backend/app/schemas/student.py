@@ -57,3 +57,42 @@ class StudentListResponse(BaseModel):
     """Paginated list of students."""
     students: list[StudentResponse]
     total: int
+
+
+class StudentAttendanceHistory(BaseModel):
+    """Attendance result for one non-cancelled course session."""
+    session_id: str
+    session_date: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
+    status: str
+    detected_at: str | None = None
+    method: str | None = None
+    confidence: float | None = None
+
+    @field_validator("session_date", "start_time", "end_time", "detected_at", mode="before")
+    @classmethod
+    def serialize_timestamps(cls, value):
+        return normalize_timestamp(value)
+
+
+class StudentCourseAttendance(BaseModel):
+    """An enrolled course with the student's attendance summary and history."""
+    course_id: str
+    course_code: str
+    course_name: str
+    department: str
+    section: str
+    teacher_id: str
+    enrolled_at: str | None = None
+    total_classes: int = 0
+    present: int = 0
+    late: int = 0
+    absent: int = 0
+    percentage: float = 0.0
+    attendance_history: list[StudentAttendanceHistory] = []
+
+    @field_validator("enrolled_at", mode="before")
+    @classmethod
+    def serialize_enrolled_at(cls, value):
+        return normalize_timestamp(value)

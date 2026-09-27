@@ -212,6 +212,91 @@ async def list_students(
     return StudentListResponse(students=students, total=len(students))
 
 
+async def get_student_courses_with_attendance(
+    student_id: str,
+) -> list[dict]:
+    """Return the student's enrolled courses and per-session attendance."""
+    db = get_db()
+    enrollment_docs = (
+        db.collection("enrollments")
+        .where("student_id", "==", student_id)
+        .get()
+    )
+
+    courses = []
+    for enrollment_doc in enrollment_docs:
+        enrollment = enrollment_doc.to_dict()
+        course_id = enrollment["course_id"]
+        course_doc = db.collection("courses").document(course_id).get()
+        if not course_doc.exists:
+            continue
+
+        course = course_doc.to_dict()
+        history = []
+        present = 0
+        late = 0
+        absent = 0
+
+        session_docs = (
+            db.collection("attendance_sessions")
+            .where("course_id", "==", course_id)
+            .get()
+        )
+        for session_doc in session_docs:
+            session = session_doc.to_dict()
+            if session.get("status") == "cancelled":
+                continue
+
+            record_docs = (
+                db.collection("attendance_records")
+                .where("session_id", "==", session_doc.id)
+                .where("student_id", "==", student_id)
+                .limit(1)
+                .get()
+            )
+            record = record_docs[0].to_dict() if record_docs else {}
+            status = record.get("status", "absent")
+
+            if status == "present":
+                present += 1
+            elif status == "late":
+                late += 1
+            else:
+                absent += 1
+
+            history.append({
+                "session_id": session_doc.id,
+                "session_date": session.get("session_date"),
+                "start_time": session.get("start_time"),
+                "end_time": session.get("end_time"),
+                "status": status,
+                "detected_at": record.get("detected_at"),
+                "method": record.get("method"),
+                "confidence": record.get("confidence"),
+            })
+
+        total_classes = len(history)
+        courses.append({
+            "course_id": course_id,
+            "course_code": course.get("course_code", ""),
+            "course_name": course.get("course_name", ""),
+            "department": course.get("department", ""),
+            "section": course.get("section", ""),
+            "teacher_id": course.get("teacher_id", ""),
+            "enrolled_at": enrollment.get("enrolled_at"),
+            "total_classes": total_classes,
+            "present": present,
+            "late": late,
+            "absent": absent,
+            "percentage": round((present + late) / total_classes * 100, 1)
+            if total_classes
+            else 0.0,
+            "attendance_history": history,
+        })
+
+    return courses
+
+
 async def update_student(
     student_id: str, data: StudentUpdate
 ) -> StudentResponse:

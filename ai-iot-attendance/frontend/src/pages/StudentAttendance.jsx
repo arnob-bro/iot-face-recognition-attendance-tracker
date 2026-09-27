@@ -1,177 +1,103 @@
 import { useEffect, useState } from "react";
-import {
-    getStudentMe,
-    getStudentAttendance,
-} from "../api/students";
+import { getStudentCourses } from "../api/students";
 import "./StudentAttendance.css";
 import Loader from "../components/Loader";
 
-
-
 function StudentAttendance() {
+  const [courses, setCourses] = useState([]);
 
-    const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-    const [loading, setLoading] = useState(true);
-    const [message, setMessage] = useState("");
+  useEffect(() => {
+    const loadAttendance = async () => {
+      try {
+        const enrolledCourses = await getStudentCourses();
+        setCourses(Array.isArray(enrolledCourses) ? enrolledCourses : []);
+      } catch (error) {
+        setMessage(error.message || "Failed to load attendance.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadAttendance();
+  }, []);
 
+  if (loading) {
+    return <Loader />;
+  }
 
-    useEffect(() => {
+  return (
+    <div className="student-attendance-page">
+      <h1>My Attendance</h1>
 
-        const loadAttendance = async () => {
+      {message && <p className="student-attendance-message">{message}</p>}
 
-            try {
+      {courses.length === 0 ? (
+        <p className="student-attendance-empty">
+          You are not currently enrolled in any courses.
+        </p>
+      ) : (
+        <div className="student-course-list">
+          {courses.map((course) => (
+            <section className="student-course-section" key={course.course_id}>
+              <div className="student-course-header">
+                <div>
+                  <h2>
+                    {course.course_code} · {course.course_name}
+                  </h2>
+                  <p>
+                    Section {course.section} · {course.department}
+                  </p>
+                </div>
+                <div className="student-course-percentage">
+                  <strong>{course.percentage.toFixed(1)}%</strong>
+                  <span>attendance</span>
+                </div>
+              </div>
 
-                const student = await getStudentMe();
+              <div className="student-course-stats">
+                <span>Total classes: {course.total_classes}</span>
+                <span>Present: {course.present}</span>
+                <span>Late: {course.late}</span>
+                <span>Absent: {course.absent}</span>
+              </div>
 
-
-                const records = await getStudentAttendance(
-                    student.student_id
-                );
-
-
-                setAttendance(
-                    Array.isArray(records)
-                        ? records
-                        : []
-                );
-
-
-            } catch (error) {
-
-                setMessage(
-                    error.message || "Failed to load attendance."
-                );
-
-            } finally {
-
-                setLoading(false);
-
-            }
-
-        };
-
-
-        loadAttendance();
-
-    }, []);
-
-
-
-
-    if (loading) {
-
-        return (
-            <Loader/>
-        );
-
-    }
-
-
-
-
-    return (
-
-        <div className="student-attendance-page">
-
-            <h1>
-                My Attendance
-            </h1>
-
-
-            {message && (
-
-                <p className="student-attendance-message">
-                    {message}
+              {course.attendance_history.length === 0 ? (
+                <p className="student-course-empty">
+                  No sessions have been recorded yet.
                 </p>
-
-            )}
-
-
-
-            {attendance.length === 0 ? (
-
-                <p className="student-attendance-empty">
-                    No attendance records found.
-                </p>
-
-            ) : (
-
+              ) : (
                 <table className="student-attendance-table">
-
-                    <thead>
-
-                        <tr>
-                            <th>Course</th>
-
-                            <th>
-                                Date
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Method
-                            </th>
-
-                            <th>
-                                Confidence
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        {attendance.map((record, index) => (
-
-                            <tr key={index}>
-
-                                <td>
-                                    {record.course_name || "-"}
-                                </td>
-
-                                <td>
-                                    {record.detected_at || "-"}
-                                </td>
-
-
-                                <td>
-                                    {record.status || "-"}
-                                </td>
-
-
-                                <td>
-                                    {record.method || "-"}
-                                </td>
-
-
-                                <td>
-                                    {record.confidence ?? "-"}
-                                </td>
-
-
-                            </tr>
-
-                        ))}
-
-                    </tbody>
-
-
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Method</th>
+                      <th>Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {course.attendance_history.map((record) => (
+                      <tr key={record.session_id}>
+                        <td>
+                          {record.session_date || record.start_time || "-"}
+                        </td>
+                        <td>{record.status}</td>
+                        <td>{record.method || "-"}</td>
+                        <td>{record.confidence ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
-
-            )}
-
+              )}
+            </section>
+          ))}
         </div>
-
-    );
-
+      )}
+    </div>
+  );
 }
-
 
 export default StudentAttendance;

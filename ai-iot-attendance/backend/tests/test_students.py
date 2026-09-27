@@ -143,6 +143,82 @@ class TestStudents:
         assert "students" in data
         assert "total" in data
 
+    def test_student_courses_include_attendance_summary(self, client, auth_headers):
+        """Students can view enrolled courses and their course attendance."""
+        student_id = "20220104006"
+        course_response = client.post(
+            "/api/v1/courses/",
+            headers=auth_headers,
+            json={
+                "course_code": "CSE3001",
+                "course_name": "Attendance APIs",
+                "department": "CSE",
+                "section": "A",
+                "teacher_id": "teacher-attendance",
+            },
+        )
+        course_id = course_response.json()["course_id"]
+
+        student_response = client.post(
+            "/api/v1/students/",
+            headers=auth_headers,
+            json={
+                "student_id": student_id,
+                "name": "Course Student",
+                "department": "CSE",
+                "batch": "23",
+                "email": "course.student@test.edu",
+                "password": "studentpass123",
+            },
+        )
+        assert student_response.status_code == 201
+
+        enrollment_response = client.post(
+            f"/api/v1/courses/{course_id}/enroll",
+            headers=auth_headers,
+            json={"student_id": student_id},
+        )
+        assert enrollment_response.status_code == 201
+
+        from app.core.firebase import get_db
+
+        db = get_db()
+        session_ref = db.collection("attendance_sessions").add({
+            "course_id": course_id,
+            "teacher_id": "teacher-attendance",
+            "session_date": "2026-09-28",
+            "start_time": "2026-09-28T09:00:00+00:00",
+            "end_time": "2026-09-28T10:00:00+00:00",
+            "status": "completed",
+        })
+        session_id = session_ref[1].id
+        db.collection("attendance_records").add({
+            "session_id": session_id,
+            "student_id": student_id,
+            "status": "present",
+            "confidence": 0.95,
+            "detected_at": "2026-09-28T09:15:00+00:00",
+            "method": "face",
+        })
+
+        login = client.post(
+            f"/api/v1/students/login?student_id={student_id}&password=studentpass123"
+        )
+        student_headers = {
+            "Authorization": f"Bearer {login.json()['access_token']}"
+        }
+        response = client.get(
+            "/api/v1/students/me/courses", headers=student_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["course_id"] == course_id
+        assert data[0]["percentage"] == 100.0
+        assert data[0]["present"] == 1
+        assert data[0]["attendance_history"][0]["status"] == "present"
+
     def test_no_auth_returns_error(self, client):
         """Student endpoints without auth should return 403."""
         response = client.get("/api/v1/students/")
